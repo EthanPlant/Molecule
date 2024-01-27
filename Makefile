@@ -38,6 +38,7 @@ molecule.bin: $(C_OBJ) $(ASM_OBJ) $(ARCHDIR)/linker.ld
 clean:
 	rm -f molecule.bin
 	rm -f $(C_OBJ)
+	rm -f $(C_OBJ:.o=.d)
 	rm -f $(ASM_OBJ)
 	rm -rf isodir
 
