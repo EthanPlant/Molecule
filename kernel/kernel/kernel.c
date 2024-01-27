@@ -1,11 +1,10 @@
-#include <stdio.h>
-
-#include <kernel/arch.h>
-#include <kernel/tty.h>
+#include <cpu.h>
+#include <tty/tty.h>
 
 void kernel_main(void)
 {
-    arch_init();
     tty_init();
-    printf("Hello Molecule!");
+    
+    arch_init();
+    tty_writestring("Welcome to Molecule!");
 }
