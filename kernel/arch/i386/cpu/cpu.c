@@ -4,6 +4,5 @@
 
 void arch_init(void)
 {
-    tty_writestring("Initializing GDT ");
     gdt_init();
 }
