@@ -13,7 +13,9 @@
 
 #define GDT_FLAGS_GRANULARITY 1 << 7
 #define GDT_FLAGS_SIZE 1 << 6
-#define GDT_FLAGS_LONG 1 << 5;
+#define GDT_FLAGS_LONG 1 << 5
+
+#define KERNEL_DATA_SEL 0x08
 
 void gdt_init(void);
 
