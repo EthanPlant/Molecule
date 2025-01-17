@@ -6,15 +6,14 @@
 #![no_main]
 
 use core::arch::asm;
-use core::fmt::Write;
 
 use arch::arch_init;
-use drivers::uart_16650::serial_println;
 use limine::request::{FramebufferRequest, RequestsEndMarker, RequestsStartMarker};
 use limine::BaseRevision;
 
 mod arch;
 mod drivers;
+mod logger;
 
 /// Sets the base revision to the latest revision supported by the crate.
 /// See specification for further info.
@@ -41,7 +40,8 @@ unsafe extern "C" fn kmain() -> ! {
 
     arch_init();
 
-    serial_println!("Arch init done!");
+    log::info!("Dropped into kmain!");
+    log::info!("Running Molecule {}", env!("CARGO_PKG_VERSION"));
 
     // All limine requests must also be referenced in a called function, otherwise they may be
     // removed by the linker.
@@ -64,7 +64,8 @@ unsafe extern "C" fn kmain() -> ! {
 }
 
 #[panic_handler]
-fn rust_panic(_info: &core::panic::PanicInfo) -> ! {
+fn rust_panic(info: &core::panic::PanicInfo) -> ! {
+    log::error!("{}", info);
     hcf();
 }
 
