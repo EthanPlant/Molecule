@@ -1,10 +1,20 @@
+#![feature(
+    decl_macro
+)]
+
 #![no_std]
 #![no_main]
 
 use core::arch::asm;
+use core::fmt::Write;
 
+use arch::arch_init;
+use drivers::uart_16650::serial_println;
 use limine::request::{FramebufferRequest, RequestsEndMarker, RequestsStartMarker};
 use limine::BaseRevision;
+
+mod arch;
+mod drivers;
 
 /// Sets the base revision to the latest revision supported by the crate.
 /// See specification for further info.
@@ -28,6 +38,11 @@ static _END_MARKER: RequestsEndMarker = RequestsEndMarker::new();
 
 #[no_mangle]
 unsafe extern "C" fn kmain() -> ! {
+
+    arch_init();
+
+    serial_println!("Arch init done!");
+
     // All limine requests must also be referenced in a called function, otherwise they may be
     // removed by the linker.
     assert!(BASE_REVISION.is_supported());

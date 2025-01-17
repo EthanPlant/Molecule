@@ -1,7 +1,19 @@
 [package]
-name = "limine-rust-template"
+name = "molecule"
 version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+bitflags = "2.8.0"
 limine = "0.3.1"
+spin = { version = "0.9.8", default-features = false, features = [
+    "spin_mutex",
+    "rwlock",
+    "once",
+] }
+
+[profile.dev]
+panic = "abort"
+
+[profile.release]
+panic = "abort"
