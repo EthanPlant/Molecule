@@ -32,18 +32,18 @@ pub struct SerialPort(u16);
 
 impl SerialPort {
     /// Creates a new serial port interface with the specified port.
-    /// 
+    ///
     /// This function does not initialize the serial port. To initialize the serial port, call the
     /// [init] method.
-    pub const fn new(port: u16) -> Self {
+    pub fn new(port: u16) -> Self {
         Self(port)
     }
 
     /// Attempt to initialize the serial port, and returns the initialized port if successful.
     /// In order to ensure the serial port is functional, a self-test is performed. If the self
-    /// 
+    ///
     /// # Safety
-    /// 
+    ///
     /// The caller must ensure that the port is a serial port
     /// and that the port is valid as attempting to write to a non-existent port
     /// can lead to undefined behavior.
@@ -77,15 +77,13 @@ impl SerialPort {
         // Safety: The serial port is guaranteed to be initialized by the time this method is called,
         // and the status is checked to ensure data is ready to be read.
         self.wait_for_status(LineStatus::DATA_READY);
-        unsafe {
-            io::inb(self.0)
-        }
+        unsafe { io::inb(self.0) }
     }
 
     fn get_line_status(&self) -> LineStatus {
-        LineStatus::from_bits_truncate(unsafe {io::inb(self.0 + 5)})
+        LineStatus::from_bits_truncate(unsafe { io::inb(self.0 + 5) })
     }
-    
+
     fn wait_for_status(&self, status: LineStatus) {
         while !self.get_line_status().contains(status) {}
     }

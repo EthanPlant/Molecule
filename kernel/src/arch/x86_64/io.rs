@@ -1,11 +1,9 @@
 use core::arch::asm;
 
-use spin::{Mutex, Once};
-
 /// Wrapper function around the outb asm instruction
-/// 
+///
 /// # Safety
-/// 
+///
 /// The caller must ensure that the port is valid as
 /// attempting to write to a non-existent port
 /// can lead to undefined behavior.
@@ -19,9 +17,9 @@ pub unsafe fn outb(port: u16, value: u8) {
 }
 
 /// Wrapper function around the inb asm instruction
-/// 
+///
 /// # Safety
-/// 
+///
 /// The caller must ensure that the port is valid as
 /// attempting to read from a non-existent port can lead to undefined behavior.
 pub unsafe fn inb(port: u16) -> u8 {
@@ -36,11 +34,11 @@ pub unsafe fn inb(port: u16) -> u8 {
 }
 
 /// Wrapper function around the outw asm instruction
-/// 
+///
 /// # Safety
-/// 
+///
 /// The caller must ensure that the port is valid as
-/// attempting to write to a non-existent port 
+/// attempting to write to a non-existent port
 /// can lead to undefined behavior.
 pub unsafe fn outw(port: u16, value: u16) {
     asm!(
@@ -52,9 +50,9 @@ pub unsafe fn outw(port: u16, value: u16) {
 }
 
 /// Wrapper function around the inw asm instruction
-/// 
+///
 /// # Safety
-/// 
+///
 /// The caller must ensure that the port is valid as
 /// attempting to read from a non-existent port can lead to undefined behavior.
 pub unsafe fn inw(port: u16) -> u16 {
@@ -69,8 +67,8 @@ pub unsafe fn inw(port: u16) -> u16 {
 }
 
 /// Wrapper function around the outl asm instruction
-/// 
-/// 
+///
+///
 pub unsafe fn outl(port: u16, value: u32) {
     asm!(
         "out dx, eax",
@@ -81,9 +79,9 @@ pub unsafe fn outl(port: u16, value: u32) {
 }
 
 /// Wrapper function around the inl asm instruction
-/// 
+///
 /// # Safety
-/// 
+///
 /// The caller must ensure that the port is valid as
 /// attempting to read from a non-existent port can lead to undefined behavior.
 pub unsafe fn inl(port: u16) -> u32 {

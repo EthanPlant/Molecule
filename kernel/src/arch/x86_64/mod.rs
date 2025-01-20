@@ -1,4 +1,4 @@
-use crate::{drivers::{self, uart_16650::serial_println}, logger};
+use crate::{drivers, logger};
 
 pub mod io;
 

@@ -1,7 +1,4 @@
-#![feature(
-    decl_macro
-)]
-
+#![feature(decl_macro)]
 #![no_std]
 #![no_main]
 
@@ -37,7 +34,6 @@ static _END_MARKER: RequestsEndMarker = RequestsEndMarker::new();
 
 #[no_mangle]
 unsafe extern "C" fn kmain() -> ! {
-
     arch_init();
 
     log::info!("Dropped into kmain!");
