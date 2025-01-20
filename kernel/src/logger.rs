@@ -11,7 +11,7 @@ impl log::Log for MoleculeLogger {
 
     fn log(&self, record: &Record) {
         if self.enabled(record.metadata()) {
-            use crate::drivers::uart::*;
+            use crate::drivers::uart::serial_print;
 
             let file = record.file().unwrap_or("unknown");
             let file = file.strip_prefix("kernel/src").unwrap_or(file);

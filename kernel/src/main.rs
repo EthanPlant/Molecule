@@ -1,6 +1,7 @@
 #![feature(decl_macro)]
 #![no_std]
 #![no_main]
+#![warn(clippy::pedantic)]
 
 use core::arch::asm;
 

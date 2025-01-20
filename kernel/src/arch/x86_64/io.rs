@@ -40,6 +40,7 @@ pub unsafe fn inb(port: u16) -> u8 {
 /// The caller must ensure that the port is valid as
 /// attempting to write to a non-existent port
 /// can lead to undefined behavior.
+#[allow(dead_code)]
 pub unsafe fn outw(port: u16, value: u16) {
     asm!(
         "out dx, ax",
@@ -55,6 +56,7 @@ pub unsafe fn outw(port: u16, value: u16) {
 ///
 /// The caller must ensure that the port is valid as
 /// attempting to read from a non-existent port can lead to undefined behavior.
+#[allow(dead_code)]
 pub unsafe fn inw(port: u16) -> u16 {
     let value: u16;
     asm!(
@@ -68,7 +70,11 @@ pub unsafe fn inw(port: u16) -> u16 {
 
 /// Wrapper function around the outl asm instruction
 ///
+/// # Safety
 ///
+/// The caller must ensure that the port is valid as
+/// attempting to write to a non-existent port can lead to undefined behavior.
+#[allow(dead_code)]
 pub unsafe fn outl(port: u16, value: u32) {
     asm!(
         "out dx, eax",
@@ -84,6 +90,7 @@ pub unsafe fn outl(port: u16, value: u32) {
 ///
 /// The caller must ensure that the port is valid as
 /// attempting to read from a non-existent port can lead to undefined behavior.
+#[allow(dead_code)]
 pub unsafe fn inl(port: u16) -> u32 {
     let value: u32;
     asm!(

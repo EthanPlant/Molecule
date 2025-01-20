@@ -50,7 +50,7 @@ impl SerialPort {
     pub unsafe fn init(self) -> Result<Self> {
         io::outb(self.0 + 1, 0x00); // Disable interrupts
         io::outb(self.0 + 3, 0x80); // Enable DLAB (set baud rate divisor)
-        io::outb(self.0 + 0, 0x03); // Set divisor to 3 (lo byte) 38400 baud
+        io::outb(self.0, 0x03); // Set divisor to 3 (lo byte) 38400 baud
         io::outb(self.0 + 1, 0x00); //                  (hi byte)
         io::outb(self.0 + 3, 0x03); // 8 bits, no parity, one stop bit
         io::outb(self.0 + 2, 0xC7); // Enable FIFO, clear them, with 14-byte threshold
@@ -73,6 +73,7 @@ impl SerialPort {
         }
     }
 
+    #[allow(dead_code)]
     pub fn read_byte(&mut self) -> u8 {
         // Safety: The serial port is guaranteed to be initialized by the time this method is called,
         // and the status is checked to ensure data is ready to be read.
@@ -90,7 +91,7 @@ impl SerialPort {
 
     unsafe fn self_test(&self) -> bool {
         io::outb(self.0 + 4, 0x1E); // Enable loopback mode
-        io::outb(self.0 + 0, 0xAE); // Send test byte
+        io::outb(self.0, 0xAE); // Send test byte
         io::inb(self.0) == 0xAE
     }
 }
@@ -113,7 +114,7 @@ impl fmt::Write for SerialPort {
 }
 
 pub macro serial_print($($arg:tt)*) {
-    ($crate::drivers::uart_16650::_serial_print(format_args!($($arg)*)))
+    ($crate::drivers::uart_16650::serial_print_internal(format_args!($($arg)*)))
 }
 
 pub macro serial_println {
@@ -122,7 +123,7 @@ pub macro serial_println {
 }
 
 #[doc(hidden)]
-pub fn _serial_print(args: fmt::Arguments) {
+pub fn serial_print_internal(args: fmt::Arguments) {
     if let Some(c) = COM_1.get() {
         c.lock().write_fmt(args).expect("Failed to write to COM1");
     }
