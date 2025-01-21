@@ -2,6 +2,8 @@
 #![no_std]
 #![no_main]
 #![warn(clippy::pedantic)]
+#![allow(clippy::cast_possible_truncation)]
+#![allow(clippy::cast_lossless)]
 
 use core::arch::asm;
 
