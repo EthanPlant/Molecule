@@ -1,4 +1,5 @@
 #![feature(decl_macro)]
+#![feature(naked_functions)]
 #![no_std]
 #![no_main]
 #![warn(clippy::pedantic)]

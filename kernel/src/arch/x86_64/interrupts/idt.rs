@@ -1,6 +1,9 @@
 use core::{arch::asm, ptr::addr_of};
 
-use crate::arch::{x86_64::gdt::{SegmentSelector, KERNEL_CODE_INDEX}, PrivilegeLevel};
+use crate::arch::{
+    x86_64::gdt::{SegmentSelector, KERNEL_CODE_INDEX},
+    PrivilegeLevel,
+};
 
 const IDT_ENTRIES: usize = 256;
 
@@ -71,7 +74,11 @@ pub struct IdtEntry {
 }
 
 impl IdtEntry {
-    const EMPTY: Self = Self::new(0, SegmentSelector::new(KERNEL_CODE_INDEX, PrivilegeLevel::Kernel), IdtEntryAttributes::default());
+    const EMPTY: Self = Self::new(
+        0,
+        SegmentSelector::new(KERNEL_CODE_INDEX, PrivilegeLevel::Kernel),
+        IdtEntryAttributes::default(),
+    );
 
     const fn new(offset: u64, selector: SegmentSelector, attributes: IdtEntryAttributes) -> Self {
         IdtEntry {
@@ -83,6 +90,14 @@ impl IdtEntry {
             offset_high: (offset >> 32) as u32,
             reserved: 0,
         }
+    }
+
+    pub fn set_func(&mut self, func: unsafe extern "C" fn()) {
+        let func_ptr = func as usize;
+
+        self.offset_low = func_ptr as u16;
+        self.offset_middle = (func_ptr >> 16) as u16;
+        self.offset_high = (func_ptr >> 32) as u32;
     }
 }
 
@@ -101,9 +116,9 @@ pub fn init() {
 }
 
 unsafe fn load_idt(descriptor: &IdtDescriptor) {
-        asm!(
-            "lidt [{}]",
-            in(reg) descriptor,
-            options(nostack),
-        );
+    asm!(
+        "lidt [{}]",
+        in(reg) descriptor,
+        options(nostack),
+    );
 }

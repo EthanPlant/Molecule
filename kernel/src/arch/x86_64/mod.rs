@@ -1,6 +1,6 @@
 use core::arch::asm;
 
-use interrupts::idt;
+use interrupts::{exception::register_exceptions, idt};
 
 use crate::{drivers, logger};
 
@@ -36,10 +36,8 @@ pub fn arch_init() {
     idt::init();
     log::debug!("IDT initialized!");
 
-    unsafe {
-        asm!("sti");
-        asm!("int 0x3");
-    }
+    register_exceptions();
+    log::debug!("Exceptions registered!");
 
     log::info!("Arch init done!");
 }
