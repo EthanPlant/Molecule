@@ -4,7 +4,7 @@ use super::PrivilegeLevel;
 
 const GDT_ENTRIES: usize = 3;
 
-const KERNEL_CODE_INDEX: u16 = 1;
+pub const KERNEL_CODE_INDEX: u16 = 1;
 const KERNEL_DATA_INDEX: u16 = 2;
 
 static mut GDT: [GdtEntry; GDT_ENTRIES] = [
@@ -53,14 +53,14 @@ impl GdtAccessFlags {
 
 #[derive(Debug, Copy, Clone, Default)]
 #[repr(transparent)]
-struct SegmentSelector(u16);
+pub struct SegmentSelector(u16);
 
 impl SegmentSelector {
-    const fn new(index: u16, privilege: PrivilegeLevel) -> Self {
+    pub const fn new(index: u16, privilege: PrivilegeLevel) -> Self {
         Self(index << 3 | (privilege as u16))
     }
 
-    const fn bits(self) -> u16 {
+    fn bits(self) -> u16 {
         self.0
     }
 }
