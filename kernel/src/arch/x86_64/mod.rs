@@ -1,4 +1,4 @@
-use core::arch::asm;
+//! Architecture specific code for ``x86_64``.
 
 use interrupts::{exception::register_exceptions, idt};
 
@@ -8,10 +8,13 @@ mod gdt;
 mod interrupts;
 pub mod io;
 
+/// Represents the privilege level of the CPU.
 #[derive(Debug, Copy, Clone, PartialEq)]
 #[repr(u8)]
 pub enum PrivilegeLevel {
+    /// Ring 0 or kernel privilege level.
     Kernel = 0,
+    /// Ring 3 or user privilege level.
     User = 3,
 }
 
@@ -25,6 +28,14 @@ impl From<u8> for PrivilegeLevel {
     }
 }
 
+/// Performs any ``x86_64`` specific initialization.
+///
+/// This function is called during the kernel initialization process to perform any architecture specific initialization.
+/// Specifically, this function performs the following:
+/// 1. Initializes the [UART driver](drivers::uart_16650) for serial logging.
+/// 2. Initializes the [GDT](gdt) (Global Descriptor Table).
+/// 3. Initializes the [IDT](idt) (Interrupt Descriptor Table).
+/// 4. Registers handlers for CPU exceptions.
 pub fn arch_init() {
     drivers::uart::init();
     logger::init();

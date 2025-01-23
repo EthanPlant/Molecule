@@ -65,6 +65,9 @@ impl IretRegisters {
     }
 }
 
+/// Represents the stack frame pushed by the CPU during an interrupt.
+///
+/// This contains the state of all registers at the time of the interrupt, so that we can preserve them and restore them when the interrupt handler is done.
 #[repr(C)]
 pub struct InterruptStackFrame {
     pub scratch: ScratchRegisters,
@@ -73,6 +76,7 @@ pub struct InterruptStackFrame {
 }
 
 impl InterruptStackFrame {
+    /// Dump the contents of the CPU registers to the logger.
     pub fn dump(&self) {
         self.scratch.dump();
         self.preserved.dump();
@@ -80,6 +84,7 @@ impl InterruptStackFrame {
     }
 }
 
+/// Push all of the [`ScratchRegisters`] to the stack.
 pub macro push_scratch() {
     "
             push rcx
@@ -93,6 +98,7 @@ pub macro push_scratch() {
         "
 }
 
+/// Pop all of the [`ScratchRegisters`] from the stack.
 pub macro pop_scratch() {
     "
             pop r11
@@ -107,6 +113,7 @@ pub macro pop_scratch() {
         "
 }
 
+/// Push all of the [`PreservedRegisters`] to the stack.
 pub macro push_preserved() {
     "
             push rbx
@@ -118,6 +125,7 @@ pub macro push_preserved() {
         "
 }
 
+/// Pop all of the [`PreservedRegisters`] from the stack.
 pub macro pop_preserved() {
     "
             pop r15
@@ -129,6 +137,18 @@ pub macro pop_preserved() {
         "
 }
 
+/// Generate an interrupt handler with access to the stack frame.
+///
+/// This macro accepts a name, an identifier for the stack frame, and a block of code to execute.
+/// The macro produces a naked function which calls the provided block of code with the stack frame as an argument.
+/// This enables the inner line of code to access the stack frame and the CPU registers at the time of the interrupt.
+///
+/// # Example
+/// ```
+/// interrupt_stack!(divide_by_zero, |stack| {
+///    stack.dump();
+///    panic!("Divide by zero exception");
+/// });
 pub macro interrupt_stack($name:ident, |$stack:ident| $code:block) {
 
     #[naked]
@@ -155,6 +175,17 @@ pub macro interrupt_stack($name:ident, |$stack:ident| $code:block) {
     }
 }
 
+/// Generate an interrupt handler with access to the stack frame and an error code.
+///
+/// This macro operates nearly identical to [`interrupt_stack`], but also provides an error code to the inner block of code.
+/// This is mostly used for certain exceptions which provide an additional error code.
+///
+/// # Example
+/// ```
+/// interrupt_error!(page_fault, |stack, error_code| {
+///   stack.dump();
+///   panic!("Page fault exception with error code: {}", error_code);
+/// });
 pub macro interrupt_error($name:ident, |$stack:ident, $error_code:ident| $code:block) {
     #[naked]
     pub unsafe extern "C" fn $name() {

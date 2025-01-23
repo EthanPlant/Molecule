@@ -1,3 +1,5 @@
+//! Exception handlers for ``x86_64`` CPU instructions.
+
 use super::{
     handler::{interrupt_error, interrupt_stack},
     idt::IDT,
@@ -133,6 +135,7 @@ interrupt_error!(security_exception, |stack, error_code| {
     panic!("Security exception with error code: {}", error_code)
 });
 
+/// Registers handlers for CPU exceptions into the IDT.
 pub fn register_exceptions() {
     unsafe {
         IDT[0].set_func(divide_by_zero);
