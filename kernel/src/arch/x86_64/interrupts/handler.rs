@@ -1,3 +1,10 @@
+/// Type alias for a function pointer to an interrupt handler
+///
+/// Interrupt handlers **should not** be created by hand, as an interrupt cannot be handled solely by a normal Rust function b
+/// ecause interrupts have their own distinct calling convention. The easiest way to construct a valid handler function is via
+/// the [`interrupt_stack`] macro.
+pub type HandlerFunc = unsafe extern "C" fn();
+
 #[repr(C)]
 pub struct ScratchRegisters {
     pub r11: usize,
@@ -153,8 +160,8 @@ pub macro interrupt_stack($name:ident, |$stack:ident| $code:block) {
 
     #[naked]
     pub unsafe extern "C" fn $name() {
-        unsafe extern "C" fn inner($stack: &mut InterruptStackFrame) {
-            unsafe { $code }
+        extern "C" fn inner($stack: &mut InterruptStackFrame) {
+            $code
         }
 
         core::arch::naked_asm!(concat!(
@@ -189,8 +196,8 @@ pub macro interrupt_stack($name:ident, |$stack:ident| $code:block) {
 pub macro interrupt_error($name:ident, |$stack:ident, $error_code:ident| $code:block) {
     #[naked]
     pub unsafe extern "C" fn $name() {
-        unsafe extern "C" fn inner($stack: &mut InterruptStackFrame, $error_code: usize) {
-            unsafe { $code }
+        extern "C" fn inner($stack: &mut InterruptStackFrame, $error_code: usize) {
+            $code
         }
 
         core::arch::naked_asm!(concat!(

@@ -1,14 +1,34 @@
 use core::{arch::asm, ptr::addr_of};
 
+use spin::Mutex;
+
 use crate::arch::{
     x86_64::gdt::{SegmentSelector, KERNEL_CODE_INDEX},
     PrivilegeLevel,
 };
 
+use super::handler::HandlerFunc;
+
 const IDT_ENTRIES: usize = 256;
 
 /// The Interrupt Descriptor Table (IDT) entries.
-pub static mut IDT: [IdtEntry; IDT_ENTRIES] = [IdtEntry::EMPTY; IDT_ENTRIES];
+pub static IDT: Mutex<Idt> = Mutex::new(Idt::new());
+
+/// An Interrupt Descriptor Table (IDT)
+#[repr(C, align(16))]
+pub struct Idt {
+    /// The entries of the IDT.
+    pub entries: [IdtEntry; IDT_ENTRIES],
+}
+
+impl Idt {
+    /// Create a new empty IDT
+    const fn new() -> Self {
+        Self {
+            entries: [IdtEntry::EMPTY; IDT_ENTRIES],
+        }
+    }
+}
 
 /// The Interrupt Descriptor Table (IDT) descriptor. This structure will get loaded into the CPU through the `lidt` instruction.
 /// to tell the CPU where the IDT is located in memory.
@@ -108,14 +128,27 @@ impl IdtEntry {
     /// An empty IDT entry used as a placeholder.
     /// This entry has a null function pointer, a kernel code segment selector, and default attributes.
     /// Any attempt to call this entry will result in a Page Fault, as the function pointer is set to 0.
-    const EMPTY: Self = Self::new(
-        0,
-        SegmentSelector::new(KERNEL_CODE_INDEX, PrivilegeLevel::Kernel),
-        IdtEntryAttributes::default(),
-    );
+    const EMPTY: Self = {
+        // Safety: Segment selector and attributes are valid, we're using 0 as a placeholder function offset.
+        // While this will lead to a Page Fault Exception if this interrupt is ever called, it is guaranteed to be well-defined behvaiour.
+        unsafe {
+            Self::new(
+                0,
+                SegmentSelector::new(KERNEL_CODE_INDEX, PrivilegeLevel::Kernel),
+                IdtEntryAttributes::default(),
+            )
+        }
+    };
 
     /// Create a new IDT entry, with a given offset, segment selector, and attributes.
-    const fn new(offset: u64, selector: SegmentSelector, attributes: IdtEntryAttributes) -> Self {
+    ///
+    /// # Safety
+    /// `offset` **must** point to a valid interrupt [handler function](HandlerFunc) to avoid unedefined behaviour.
+    const unsafe fn new(
+        offset: usize,
+        selector: SegmentSelector,
+        attributes: IdtEntryAttributes,
+    ) -> Self {
         IdtEntry {
             offset_low: offset as u16,
             selector,
@@ -129,9 +162,9 @@ impl IdtEntry {
 
     /// Set the function pointer of the IDT entry to a given function.
     ///
-    /// This function must be a valid interrupt handler, and cannot be any generic function.
-    /// The easiest way to generate a valid interrupt handler is to use the [`interrupt_stack`](super::handler::interrupt_stack) macro.
-    pub fn set_func(&mut self, func: unsafe extern "C" fn()) {
+    /// # Safety
+    /// This function must be a valid interrupt [handler](HandlerFunc), and cannot be any generic function.
+    pub unsafe fn set_func(&mut self, func: HandlerFunc) {
         let func_ptr = func as usize;
 
         self.offset_low = func_ptr as u16;
@@ -144,7 +177,7 @@ impl IdtEntry {
 pub fn init() {
     let idt_descriptor = IdtDescriptor::new(
         (core::mem::size_of::<[IdtEntry; IDT_ENTRIES]>() - 1) as u16,
-        addr_of!(IDT).addr() as u64,
+        addr_of!(IDT.lock().entries).addr() as u64,
     );
 
     log::trace!("{:x?}", idt_descriptor);
