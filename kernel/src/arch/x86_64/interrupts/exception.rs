@@ -1,5 +1,23 @@
 //! Exception handlers for ``x86_64`` CPU instructions.
 
+bitflags::bitflags! {
+    #[repr(transparent)]
+    #[derive(Debug, Clone, Copy)]
+    struct PageFaultErrorCode: usize {
+        const PROTECTION_VIOLATION = 1 << 0;
+        const CAUSED_BY_WRITE = 1 << 1;
+        const USER_MODE = 1 << 2;
+        const MALFORMED_TABLE = 1 << 3;
+        const INSTRUCTION_FETCH = 1 << 4;
+        const PROTECTION_KEY = 1 << 5;
+        const SHADOW_STACK = 1 << 6;
+        const SGX = 1 << 15;
+        const RMP = 1 << 31;
+    }
+}
+
+use core::arch::asm;
+
 use super::{
     handler::{interrupt_error, interrupt_stack},
     idt::IDT,
@@ -81,7 +99,16 @@ interrupt_error!(general_protection_fault, |stack, error_code| {
 
 interrupt_error!(page_fault, |stack, error_code| {
     stack.dump();
-    panic!("Page fault exception with error code: {}", error_code)
+    let addr = unsafe {
+        let cr2: usize;
+        asm!("mov {}, cr2", out(reg) cr2);
+        cr2
+    };
+    panic!(
+        "Page fault exception with error code: {:?} at address {:x}",
+        PageFaultErrorCode::from_bits_truncate(error_code),
+        addr
+    )
 });
 
 interrupt_stack!(x87_floating_point, |stack| {
