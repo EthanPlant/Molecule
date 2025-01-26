@@ -1,8 +1,15 @@
 //! Architecture specific code for ``x86_64``.
 
-use interrupts::{exception::register_exceptions, idt};
+use interrupts::{
+    exception::register_exceptions,
+    idt,
+};
 
-use crate::{drivers, logger};
+use crate::{
+    drivers, logger,
+    memory::addr::{VirtAddr, HHDM_OFFSET},
+    HHDM_REQUEST,
+};
 
 mod gdt;
 mod interrupts;
@@ -40,6 +47,15 @@ pub fn arch_init() {
     drivers::uart::init();
     logger::init();
     log::info!("Logger initialized!");
+
+    HHDM_OFFSET.call_once(|| {
+        VirtAddr::new(
+            HHDM_REQUEST
+                .get_response()
+                .expect("Limine should return HHDM offset")
+                .offset() as usize,
+        )
+    });
 
     gdt::init();
     log::debug!("GDT initialized!");

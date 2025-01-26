@@ -12,12 +12,13 @@
 use core::arch::asm;
 
 use arch::arch_init;
-use limine::request::{FramebufferRequest, RequestsEndMarker, RequestsStartMarker};
+use limine::request::{FramebufferRequest, HhdmRequest, RequestsEndMarker, RequestsStartMarker};
 use limine::BaseRevision;
 
 mod arch;
 mod drivers;
 mod logger;
+mod memory;
 
 /// Sets the base revision to the latest revision supported by the crate.
 /// See specification for further info.
@@ -30,6 +31,10 @@ static BASE_REVISION: BaseRevision = BaseRevision::new();
 #[used]
 #[link_section = ".requests"]
 static FRAMEBUFFER_REQUEST: FramebufferRequest = FramebufferRequest::new();
+
+#[used]
+#[link_section = ".requests"]
+pub static HHDM_REQUEST: HhdmRequest = HhdmRequest::new();
 
 /// Define the stand and end markers for Limine requests.
 #[used]
@@ -49,6 +54,11 @@ unsafe extern "C" fn kmain() -> ! {
     // All limine requests must also be referenced in a called function, otherwise they may be
     // removed by the linker.
     assert!(BASE_REVISION.is_supported());
+
+    log::trace!(
+        "HHDM Address: {:x}",
+        HHDM_REQUEST.get_response().unwrap().offset()
+    );
 
     if let Some(framebuffer_response) = FRAMEBUFFER_REQUEST.get_response() {
         if let Some(framebuffer) = framebuffer_response.framebuffers().next() {
