@@ -1,9 +1,6 @@
 //! Architecture specific code for ``x86_64``.
 
-use interrupts::{
-    exception::register_exceptions,
-    idt,
-};
+use interrupts::{exception::register_exceptions, idt};
 
 use crate::{
     drivers, logger,

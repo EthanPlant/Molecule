@@ -12,8 +12,11 @@
 use core::arch::asm;
 
 use arch::arch_init;
-use limine::request::{FramebufferRequest, HhdmRequest, RequestsEndMarker, RequestsStartMarker};
+use limine::request::{
+    FramebufferRequest, HhdmRequest, MemoryMapRequest, RequestsEndMarker, RequestsStartMarker,
+};
 use limine::BaseRevision;
+use memory::frame::{BumpFrameAllocator, FrameAllocator};
 
 mod arch;
 mod drivers;
@@ -35,6 +38,10 @@ static FRAMEBUFFER_REQUEST: FramebufferRequest = FramebufferRequest::new();
 #[used]
 #[link_section = ".requests"]
 pub static HHDM_REQUEST: HhdmRequest = HhdmRequest::new();
+
+#[used]
+#[link_section = ".requests"]
+pub static MEM_MAP_REQUEST: MemoryMapRequest = MemoryMapRequest::new();
 
 /// Define the stand and end markers for Limine requests.
 #[used]
@@ -59,6 +66,21 @@ unsafe extern "C" fn kmain() -> ! {
         "HHDM Address: {:x}",
         HHDM_REQUEST.get_response().unwrap().offset()
     );
+
+    for entry in MEM_MAP_REQUEST.get_response().unwrap().entries() {
+        log::trace!(
+            "Free entry at {:x} with size {:x}",
+            entry.base,
+            entry.length
+        );
+    }
+    let mut frame_allocator = BumpFrameAllocator::init(MEM_MAP_REQUEST.get_response().unwrap());
+    let addr = frame_allocator.allocate_frame().unwrap();
+    log::trace!("Allocated frame at {:x?}", addr);
+    let addr = frame_allocator.allocate_frame().unwrap();
+    log::trace!("Allocated frame at {:x?}", addr);
+    let addr = frame_allocator.allocate_frame().unwrap();
+    log::trace!("Allocated frame at {:x?}", addr);
 
     if let Some(framebuffer_response) = FRAMEBUFFER_REQUEST.get_response() {
         if let Some(framebuffer) = framebuffer_response.framebuffers().next() {
