@@ -21,6 +21,7 @@ use limine::request::{
 use limine::BaseRevision;
 use memory::bootstrap::{BootstrapAlloc, BootstrapAllocRef};
 use memory::frame::{BumpFrameAllocator, FrameAllocator};
+use memory::memmap::MemoryRegionIter;
 
 extern crate alloc;
 
@@ -47,7 +48,7 @@ pub static HHDM_REQUEST: HhdmRequest = HhdmRequest::new();
 
 #[used]
 #[link_section = ".requests"]
-pub static mut MEM_MAP_REQUEST: MemoryMapRequest = MemoryMapRequest::new();
+pub static MEM_MAP_REQUEST: MemoryMapRequest = MemoryMapRequest::new();
 
 /// Define the stand and end markers for Limine requests.
 #[used]
@@ -76,20 +77,15 @@ unsafe extern "C" fn kmain() -> ! {
         HHDM_REQUEST.get_response().unwrap().offset()
     );
 
-    for entry in MEM_MAP_REQUEST.get_response().unwrap().entries() {
-        log::trace!(
-            "Free entry at {:x} with size {:x}",
-            entry.base,
-            entry.length
-        );
+    let mem_map = MemoryRegionIter {
+        iter: MEM_MAP_REQUEST.get_response().unwrap().entries().iter(),
+        cursor_base: memory::addr::PhysAddr::null(),
+        cursor_end: memory::addr::PhysAddr::null(),
+    };
+
+    for region in mem_map {
+        log::trace!("{:x?}", region);
     }
-
-    let mut frame_allocator = BumpFrameAllocator::init(MEM_MAP_REQUEST.get_response().unwrap());
-    let alloc = BootstrapAlloc::new(MEM_MAP_REQUEST.get_response_mut().unwrap());
-    let alloc_ref = BootstrapAllocRef::new(&alloc);
-
-    let a: Box<u32, BootstrapAllocRef> = Box::new_in(0xDEADBEEF, alloc_ref);
-    log::trace!("Info in Box: {:x}", *a);
 
     if let Some(framebuffer_response) = FRAMEBUFFER_REQUEST.get_response() {
         if let Some(framebuffer) = framebuffer_response.framebuffers().next() {

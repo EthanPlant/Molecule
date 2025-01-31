@@ -1,4 +1,4 @@
-use core::ops::AddAssign;
+use core::ops::{AddAssign, Sub};
 
 use spin::Once;
 
@@ -96,11 +96,23 @@ impl PhysAddr {
     pub fn as_hddm_virt(self) -> VirtAddr {
         VirtAddr::new(self.0 + HHDM_OFFSET.get().unwrap().0)
     }
+
+    pub fn align_up<T: Into<usize>>(self, align: T) -> Self {
+        Self(align_up(self.0, align.into()))
+    }
 }
 
 impl AddAssign<usize> for PhysAddr {
     fn add_assign(&mut self, rhs: usize) {
         self.0 += rhs;
+    }
+}
+
+impl Sub for PhysAddr {
+    type Output = usize;
+
+    fn sub(self, rhs: Self) -> Self::Output {
+        self.0 - rhs.0
     }
 }
 
