@@ -20,7 +20,6 @@ use limine::request::{
 };
 use limine::BaseRevision;
 use memory::bootstrap::{BootstrapAlloc, BootstrapAllocRef};
-use memory::frame::{BumpFrameAllocator, FrameAllocator};
 use memory::memmap::MemoryRegionIter;
 
 extern crate alloc;
@@ -48,7 +47,7 @@ pub static HHDM_REQUEST: HhdmRequest = HhdmRequest::new();
 
 #[used]
 #[link_section = ".requests"]
-pub static MEM_MAP_REQUEST: MemoryMapRequest = MemoryMapRequest::new();
+pub static mut MEM_MAP_REQUEST: MemoryMapRequest = MemoryMapRequest::new();
 
 /// Define the stand and end markers for Limine requests.
 #[used]
