@@ -1,3 +1,5 @@
+use core::ops::AddAssign;
+
 use spin::Once;
 
 pub static HHDM_OFFSET: Once<VirtAddr> = Once::new();
@@ -90,6 +92,16 @@ impl PhysAddr {
     pub const fn is_null(self) -> bool {
         self.0 == 0
     }
+
+    pub fn as_hddm_virt(self) -> VirtAddr {
+        VirtAddr::new(self.0 + HHDM_OFFSET.get().unwrap().0)
+    }
+}
+
+impl AddAssign<usize> for PhysAddr {
+    fn add_assign(&mut self, rhs: usize) {
+        self.0 += rhs;
+    }
 }
 
 impl From<PhysAddr> for usize {
@@ -98,14 +110,17 @@ impl From<PhysAddr> for usize {
     }
 }
 
-impl From<PhysAddr> for VirtAddr {
-    fn from(addr: PhysAddr) -> VirtAddr {
-        VirtAddr::new(addr.0 + HHDM_OFFSET.get().unwrap().0)
-    }
-}
-
 impl From<VirtAddr> for PhysAddr {
     fn from(addr: VirtAddr) -> PhysAddr {
         PhysAddr::new(addr.0 - HHDM_OFFSET.get().unwrap().0)
+    }
+}
+
+pub fn align_up(addr: usize, align: usize) -> usize {
+    let mask = align - 1;
+    if addr & mask == 0 {
+        addr
+    } else {
+        (addr | mask) + 1
     }
 }

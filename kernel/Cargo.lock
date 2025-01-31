@@ -9,6 +9,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8f68f53c83ab957f72c32642f3868eec03eb974d1fb82e453128456482613d36"
 
 [[package]]
+name = "dummy-alloc"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "25aa86b60b663473bb4e70264228bac9127644c8d4822bb8d01f1123d1799e1b"
+
+[[package]]
 name = "limine"
 version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -28,6 +34,7 @@ name = "molecule"
 version = "0.1.0"
 dependencies = [
  "bitflags",
+ "dummy-alloc",
  "limine",
  "log",
  "spin",

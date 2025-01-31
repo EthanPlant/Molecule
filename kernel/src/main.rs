@@ -1,5 +1,6 @@
 #![feature(decl_macro)]
 #![feature(naked_functions)]
+#![feature(allocator_api)]
 #![no_std]
 #![no_main]
 #![warn(clippy::pedantic)]
@@ -11,12 +12,17 @@
 
 use core::arch::asm;
 
+use alloc::boxed::Box;
 use arch::arch_init;
+use dummy_alloc::DummyAlloc;
 use limine::request::{
     FramebufferRequest, HhdmRequest, MemoryMapRequest, RequestsEndMarker, RequestsStartMarker,
 };
 use limine::BaseRevision;
+use memory::bootstrap::{BootstrapAlloc, BootstrapAllocRef};
 use memory::frame::{BumpFrameAllocator, FrameAllocator};
+
+extern crate alloc;
 
 mod arch;
 mod drivers;
@@ -41,7 +47,7 @@ pub static HHDM_REQUEST: HhdmRequest = HhdmRequest::new();
 
 #[used]
 #[link_section = ".requests"]
-pub static MEM_MAP_REQUEST: MemoryMapRequest = MemoryMapRequest::new();
+pub static mut MEM_MAP_REQUEST: MemoryMapRequest = MemoryMapRequest::new();
 
 /// Define the stand and end markers for Limine requests.
 #[used]
@@ -50,6 +56,9 @@ static _START_MARKER: RequestsStartMarker = RequestsStartMarker::new();
 #[used]
 #[link_section = ".requests_end_marker"]
 static _END_MARKER: RequestsEndMarker = RequestsEndMarker::new();
+
+#[global_allocator]
+static GLOBAL_ALLOC: DummyAlloc = DummyAlloc;
 
 #[no_mangle]
 unsafe extern "C" fn kmain() -> ! {
@@ -74,13 +83,13 @@ unsafe extern "C" fn kmain() -> ! {
             entry.length
         );
     }
+
     let mut frame_allocator = BumpFrameAllocator::init(MEM_MAP_REQUEST.get_response().unwrap());
-    let addr = frame_allocator.allocate_frame().unwrap();
-    log::trace!("Allocated frame at {:x?}", addr);
-    let addr = frame_allocator.allocate_frame().unwrap();
-    log::trace!("Allocated frame at {:x?}", addr);
-    let addr = frame_allocator.allocate_frame().unwrap();
-    log::trace!("Allocated frame at {:x?}", addr);
+    let alloc = BootstrapAlloc::new(MEM_MAP_REQUEST.get_response_mut().unwrap());
+    let alloc_ref = BootstrapAllocRef::new(&alloc);
+
+    let a: Box<u32, BootstrapAllocRef> = Box::new_in(0xDEADBEEF, alloc_ref);
+    log::trace!("Info in Box: {:x}", *a);
 
     if let Some(framebuffer_response) = FRAMEBUFFER_REQUEST.get_response() {
         if let Some(framebuffer) = framebuffer_response.framebuffers().next() {

@@ -5,6 +5,7 @@ edition = "2021"
 
 [dependencies]
 bitflags = "2.8.0"
+dummy-alloc = "0.1.0"
 limine = "0.3.1"
 log = "0.4.25"
 spin = { version = "0.9.8", default-features = false, features = [
