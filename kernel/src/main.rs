@@ -20,6 +20,7 @@ use limine::request::{
 };
 use limine::BaseRevision;
 use memory::bootstrap::{BootstrapAlloc, BootstrapAllocRef};
+use memory::frame::{BuddyFrameAllocator, FrameAllocator, FRAME_ALLOCATOR};
 use memory::memmap::MemoryRegionIter;
 
 extern crate alloc;
@@ -71,20 +72,31 @@ unsafe extern "C" fn kmain() -> ! {
     // removed by the linker.
     assert!(BASE_REVISION.is_supported());
 
-    log::trace!(
+    log::debug!(
         "HHDM Address: {:x}",
         HHDM_REQUEST.get_response().unwrap().offset()
     );
 
+    let mem_map_response = MEM_MAP_REQUEST
+        .get_response_mut()
+        .expect("Didn't recieve memory map response from limine");
+
     let mem_map = MemoryRegionIter {
-        iter: MEM_MAP_REQUEST.get_response().unwrap().entries().iter(),
+        iter: mem_map_response.entries().iter(),
         cursor_base: memory::addr::PhysAddr::null(),
         cursor_end: memory::addr::PhysAddr::null(),
     };
 
     for region in mem_map {
-        log::trace!("{:x?}", region);
+        log::debug!("{:x?}", region);
     }
+
+    FRAME_ALLOCATOR.init(mem_map_response);
+    let frame = FRAME_ALLOCATOR
+        .allocate_frame()
+        .expect("Failed to allocate frame");
+    log::trace!("Allocated frame at {:x?}", frame);
+    FRAME_ALLOCATOR.deallocate_frame(frame);
 
     if let Some(framebuffer_response) = FRAMEBUFFER_REQUEST.get_response() {
         if let Some(framebuffer) = framebuffer_response.framebuffers().next() {

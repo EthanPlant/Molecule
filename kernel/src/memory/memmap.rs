@@ -2,7 +2,7 @@ use limine::memory_map;
 
 use super::addr::PhysAddr;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum MemoryRegionType {
     Free,
     Reserved,
@@ -10,9 +10,9 @@ pub enum MemoryRegionType {
 
 #[derive(Debug)]
 pub struct MemoryRegion {
-    base: PhysAddr,
-    size: usize,
-    region_type: MemoryRegionType,
+    pub base: PhysAddr,
+    pub size: usize,
+    pub region_type: MemoryRegionType,
 }
 
 pub struct MemoryRegionIter<'a> {

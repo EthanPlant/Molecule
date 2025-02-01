@@ -8,30 +8,30 @@ use spin::mutex::Mutex;
 
 use crate::memory::addr::PhysAddr;
 
-use super::addr::align_up;
+use super::{addr::align_up, memmap::MemoryRegion};
 
 pub struct BootstrapAlloc {
-    memory_ranges: Mutex<&'static mut [&'static mut memory_map::Entry]>,
+    pub memory_ranges: Mutex<&'static mut [MemoryRegion]>,
 }
 
 impl BootstrapAlloc {
-    pub fn new(memory_ranges: &'static mut MemoryMapResponse) -> Self {
+    pub fn new(memory_ranges: &'static mut [MemoryRegion]) -> Self {
         Self {
-            memory_ranges: Mutex::new(memory_ranges.entries_mut()),
+            memory_ranges: Mutex::new(memory_ranges),
         }
     }
 
     fn allocate(&self, size: usize) -> *mut u8 {
         let size = align_up(size, 4096);
         for range in self.memory_ranges.lock().iter_mut() {
-            if range.length as usize >= size {
-                let addr = range.base as usize;
-                range.base += size as u64;
-                range.length -= size as u64;
+            if range.size >= size {
+                let addr = range.base;
+                range.base += size;
+                range.size -= size;
 
                 log::trace!("Allocated {} bytes at {:x?}", size, addr);
 
-                return PhysAddr::new(addr).as_hddm_virt().as_mut_ptr();
+                return addr.as_hddm_virt().as_mut_ptr();
             }
         }
 
@@ -39,20 +39,24 @@ impl BootstrapAlloc {
     }
 }
 
-#[derive(Clone, Copy)]
-pub struct BootstrapAllocRef<'a> {
-    inner: &'a BootstrapAlloc,
+#[derive(Clone, Copy, Debug)]
+pub struct BootstrapAllocRef {
+    pub inner: *const BootstrapAlloc,
 }
 
-impl<'a> BootstrapAllocRef<'a> {
-    pub fn new(inner: &'a BootstrapAlloc) -> Self {
+impl BootstrapAllocRef {
+    pub fn new(inner: &BootstrapAlloc) -> Self {
         Self { inner }
+    }
+
+    pub fn get_inner(&self) -> &BootstrapAlloc {
+        unsafe { &*self.inner }
     }
 }
 
-unsafe impl Allocator for BootstrapAllocRef<'_> {
+unsafe impl Allocator for BootstrapAllocRef {
     fn allocate(&self, layout: Layout) -> Result<NonNull<[u8]>, AllocError> {
-        let inner = self.inner;
+        let inner = self.get_inner();
 
         let aligned_size = align_up(layout.size() as _, layout.align() as _);
         let ptr = inner.allocate(aligned_size);
@@ -65,3 +69,5 @@ unsafe impl Allocator for BootstrapAllocRef<'_> {
         unreachable!("Bootstrap allocator can not deallocate");
     }
 }
+
+unsafe impl Send for BootstrapAllocRef {}

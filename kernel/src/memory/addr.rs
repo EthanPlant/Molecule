@@ -1,4 +1,4 @@
-use core::ops::{AddAssign, Sub};
+use core::ops::{Add, AddAssign, Sub};
 
 use spin::Once;
 
@@ -100,6 +100,18 @@ impl PhysAddr {
     pub fn align_up<T: Into<usize>>(self, align: T) -> Self {
         Self(align_up(self.0, align.into()))
     }
+
+    pub fn align_down<T: Into<usize>>(self, align: T) -> Self {
+        PhysAddr(align_down(self.0, align.into()))
+    }
+}
+
+impl Add<usize> for PhysAddr {
+    type Output = Self;
+
+    fn add(self, rhs: usize) -> Self::Output {
+        Self(self.0 + rhs)
+    }
 }
 
 impl AddAssign<usize> for PhysAddr {
@@ -135,4 +147,8 @@ pub fn align_up(addr: usize, align: usize) -> usize {
     } else {
         (addr | mask) + 1
     }
+}
+
+pub fn align_down(addr: usize, align: usize) -> usize {
+    addr & !(align - 1)
 }
