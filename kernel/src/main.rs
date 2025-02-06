@@ -77,27 +77,6 @@ unsafe extern "C" fn kmain() -> ! {
         HHDM_REQUEST.get_response().unwrap().offset()
     );
 
-    let mem_map_response = MEM_MAP_REQUEST
-        .get_response_mut()
-        .expect("Didn't recieve memory map response from limine");
-
-    let mem_map = MemoryRegionIter {
-        iter: mem_map_response.entries().iter(),
-        cursor_base: memory::addr::PhysAddr::null(),
-        cursor_end: memory::addr::PhysAddr::null(),
-    };
-
-    for region in mem_map {
-        log::debug!("{:x?}", region);
-    }
-
-    FRAME_ALLOCATOR.init(mem_map_response);
-    let frame = FRAME_ALLOCATOR
-        .allocate_frame()
-        .expect("Failed to allocate frame");
-    log::trace!("Allocated frame at {:x?}", frame);
-    FRAME_ALLOCATOR.deallocate_frame(frame);
-
     if let Some(framebuffer_response) = FRAMEBUFFER_REQUEST.get_response() {
         if let Some(framebuffer) = framebuffer_response.framebuffers().next() {
             for i in 0..100_u64 {

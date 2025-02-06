@@ -104,6 +104,10 @@ impl PhysAddr {
     pub fn align_down<T: Into<usize>>(self, align: T) -> Self {
         PhysAddr(align_down(self.0, align.into()))
     }
+
+    pub fn is_aligned(self, align: usize) -> bool {
+        self == self.align_up(align)
+    }
 }
 
 impl Add<usize> for PhysAddr {

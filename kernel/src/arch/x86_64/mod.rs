@@ -1,16 +1,19 @@
 //! Architecture specific code for ``x86_64``.
 
+use core::mem;
+
 use interrupts::{exception::register_exceptions, idt};
 
 use crate::{
     drivers, logger,
     memory::addr::{VirtAddr, HHDM_OFFSET},
-    HHDM_REQUEST,
+    HHDM_REQUEST, MEM_MAP_REQUEST,
 };
 
 mod gdt;
 mod interrupts;
 pub mod io;
+pub mod paging;
 
 /// Represents the privilege level of the CPU.
 #[derive(Debug, Copy, Clone, PartialEq)]
@@ -62,6 +65,13 @@ pub fn arch_init() {
 
     register_exceptions();
     log::debug!("Exceptions registered!");
+
+    let mem_map_response = unsafe {
+        MEM_MAP_REQUEST
+            .get_response_mut()
+            .expect("Didn't recieve memory map response from limine")
+    };
+    paging::init(mem_map_response);
 
     log::info!("Arch init done!");
 }
