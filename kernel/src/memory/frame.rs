@@ -1,6 +1,6 @@
-use core::alloc::Allocator;
+use core::{alloc::Allocator, marker::PhantomData};
 
-use alloc::vec::Vec;
+use alloc::{fmt, vec::Vec};
 use bit_field::BitField;
 use limine::{
     memory_map::{Entry, EntryType},
@@ -14,28 +14,70 @@ use crate::memory::{
     memmap::{MemoryRegionIter, MemoryRegionType},
 };
 
-use super::{addr::PhysAddr, bootstrap::BootstrapAllocRef, memmap::MemoryRegion};
+use super::{
+    addr::PhysAddr, bootstrap::BootstrapAllocRef, memmap::MemoryRegion, PageSize, PageSize4K,
+};
 
 pub static FRAME_ALLOCATOR: LockedFrameAllocator = LockedFrameAllocator::new();
 
-const FRAME_SIZE: usize = 4096;
-
 const BUDDY_SIZE: [usize; 10] = [
-    FRAME_SIZE,
-    FRAME_SIZE * 2,
-    FRAME_SIZE * 4,
-    FRAME_SIZE * 8,
-    FRAME_SIZE * 16,
-    FRAME_SIZE * 32,
-    FRAME_SIZE * 64,
-    FRAME_SIZE * 128,
-    FRAME_SIZE * 256,
-    FRAME_SIZE * 512,
+    PageSize4K::SIZE,
+    PageSize4K::SIZE * 2,
+    PageSize4K::SIZE * 4,
+    PageSize4K::SIZE * 8,
+    PageSize4K::SIZE * 16,
+    PageSize4K::SIZE * 32,
+    PageSize4K::SIZE * 64,
+    PageSize4K::SIZE * 128,
+    PageSize4K::SIZE * 256,
+    PageSize4K::SIZE * 512,
 ];
 
+#[derive(Debug)]
+pub enum FrameError {
+    AddressNotAligned,
+    FrameNotPresent,
+    HugePageNotSupported,
+}
+
+pub struct Frame<S: PageSize = PageSize4K> {
+    start: PhysAddr,
+    size: PhantomData<S>,
+}
+
+impl<S: PageSize> Frame<S> {
+    pub fn new_from_start(addr: PhysAddr) -> Result<Self, FrameError> {
+        if !addr.is_aligned(S::SIZE) {
+            return Err(FrameError::AddressNotAligned);
+        }
+        Ok(Self::containing_addr(addr))
+    }
+
+    pub fn containing_addr(addr: PhysAddr) -> Self {
+        Self {
+            start: addr.align_down(S::SIZE),
+            size: PhantomData,
+        }
+    }
+
+    pub fn start_addr(&self) -> PhysAddr {
+        self.start
+    }
+}
+
+impl<S: PageSize> fmt::Debug for Frame<S> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        f.write_fmt(format_args!(
+            "Frame[{}]({:#x})",
+            S::SIZE_STR,
+            usize::from(self.start)
+        ))
+    }
+}
+
 pub unsafe trait FrameAllocator {
-    fn allocate_frame(&self) -> Option<PhysAddr>;
-    fn deallocate_frame(&self, frame: PhysAddr);
+    fn allocate_frame(&self) -> Option<Frame<PageSize4K>>;
+    fn deallocate_frame(&self, frame: Frame<PageSize4K>);
 }
 
 pub struct LockedFrameAllocator(Mutex<BuddyFrameAllocator>);
@@ -92,12 +134,13 @@ impl LockedFrameAllocator {
 }
 
 unsafe impl FrameAllocator for LockedFrameAllocator {
-    fn allocate_frame(&self) -> Option<PhysAddr> {
-        self.alloc(FRAME_SIZE)
+    fn allocate_frame(&self) -> Option<Frame<PageSize4K>> {
+        let addr = self.alloc(PageSize4K::SIZE)?;
+        Some(Frame::containing_addr(addr))
     }
 
-    fn deallocate_frame(&self, frame: PhysAddr) {
-        self.dealloc(frame, FRAME_SIZE);
+    fn deallocate_frame(&self, frame: Frame<PageSize4K>) {
+        self.dealloc(frame.start_addr(), PageSize4K::SIZE);
     }
 }
 
@@ -184,7 +227,7 @@ impl BuddyFrameAllocator {
         let mem_map = memory_map_resp.entries_mut();
         let requested_size = align_up(
             core::mem::size_of::<MemoryRegion>() * mem_map.len(),
-            FRAME_SIZE,
+            PageSize4K::SIZE,
         );
 
         let entry = mem_map
