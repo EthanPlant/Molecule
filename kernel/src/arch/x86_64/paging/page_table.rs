@@ -6,14 +6,10 @@ use core::{
 
 use bitflags::bitflags;
 
-use crate::{
-    memory::{
-        addr::{PhysAddr, VirtAddr, HHDM_OFFSET},
-        frame::{Frame, FrameAllocator, FrameError, FRAME_ALLOCATOR},
-        page::Page,
-        PageSize, PageSize4K, VirtualMemoryManager,
-    },
-    FRAMEBUFFER_REQUEST,
+use crate::memory::{
+    addr::PhysAddr,
+    frame::{Frame, FrameError},
+    PageSize, PageSize4K,
 };
 
 use super::PageMap;
@@ -42,7 +38,7 @@ impl PageTableEntry {
     const ADDR_MASK: u64 = 0x000F_FFFF_FFFF_F000;
     const FLAGS_MASK: u64 = 0x8000_0000_0000_01FF;
 
-    pub const fn is_unused(&self) -> bool {
+    pub const fn is_unused(self) -> bool {
         self.0 == 0
     }
 
@@ -50,15 +46,15 @@ impl PageTableEntry {
         self.0 = 0;
     }
 
-    pub const fn flags(&self) -> PageTableFlags {
+    pub const fn flags(self) -> PageTableFlags {
         PageTableFlags::from_bits_truncate(self.0)
     }
 
-    pub fn addr(&self) -> PhysAddr {
+    pub fn addr(self) -> PhysAddr {
         PhysAddr::new((self.0 & Self::ADDR_MASK) as usize)
     }
 
-    pub fn frame(&self) -> Result<Frame, FrameError> {
+    pub fn frame(self) -> Result<Frame, FrameError> {
         if !self.flags().contains(PageTableFlags::PRESENT) {
             return Err(FrameError::FrameNotPresent);
         } else if self.flags().contains(PageTableFlags::HUGE_PAGE) {
@@ -73,10 +69,10 @@ impl PageTableEntry {
         self.0 &= !Self::ADDR_MASK;
         self.0 |= usize::from(addr) as u64;
 
-        self.set_flags(flags)
+        self.set_flags(flags);
     }
 
-    pub fn set_frame(&mut self, frame: Frame, flags: PageTableFlags) {
+    pub fn set_frame(&mut self, frame: &Frame, flags: PageTableFlags) {
         assert!(!flags.contains(PageTableFlags::HUGE_PAGE));
         self.set_addr(frame.start_addr(), flags);
     }
@@ -105,6 +101,7 @@ pub struct PageTable {
     entries: [PageTableEntry; ENTRY_COUNT],
 }
 
+#[allow(dead_code)]
 impl PageTable {
     pub fn zero(&mut self) {
         for entry in &mut self.entries {

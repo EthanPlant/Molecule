@@ -1,9 +1,7 @@
 //! Architecture specific code for ``x86_64``.
 
-use core::mem;
-
 use interrupts::{exception::register_exceptions, idt};
-use paging::{page_table::active_level_4_table, PageMap};
+use paging::page_table::active_level_4_table;
 
 use crate::{
     drivers, logger,
@@ -47,6 +45,7 @@ impl From<u8> for PrivilegeLevel {
 /// 2. Initializes the [GDT](gdt) (Global Descriptor Table).
 /// 3. Initializes the [IDT](idt) (Interrupt Descriptor Table).
 /// 4. Registers handlers for CPU exceptions.
+/// 5. Initialize memory management and the heap allocator.
 pub fn arch_init() {
     drivers::uart::init();
     logger::init();
@@ -70,6 +69,7 @@ pub fn arch_init() {
     register_exceptions();
     log::debug!("Exceptions registered!");
 
+    #[allow(static_mut_refs)]
     let mem_map_response = unsafe {
         MEM_MAP_REQUEST
             .get_response_mut()

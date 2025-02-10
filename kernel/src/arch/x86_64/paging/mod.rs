@@ -3,10 +3,10 @@ use core::arch::asm;
 use page_table::{PageTable, PageTableFlags};
 
 use crate::memory::{
-    addr::{PhysAddr, VirtAddr, HHDM_OFFSET},
+    addr::{PhysAddr, VirtAddr},
     frame::{Frame, FrameAllocator, FrameError, FRAME_ALLOCATOR},
     page::Page,
-    MapError, PageSize4K, UnmapError, VirtualMemoryManager,
+    MapError, UnmapError, VirtualMemoryManager,
 };
 
 pub mod page_table;
@@ -88,7 +88,6 @@ impl VirtualMemoryManager for PageMap {
                         entry.addr() + addr.p1_index() as usize + addr.page_index() as usize,
                     );
                 }
-                _ => unreachable!(),
             }
         }
 
@@ -129,7 +128,7 @@ impl VirtualMemoryManager for PageMap {
             if entry.is_unused() {
                 if let Some(table_frame) = FRAME_ALLOCATOR.allocate_frame() {
                     entry.set_frame(
-                        table_frame,
+                        &table_frame,
                         PageTableFlags::PRESENT
                             | PageTableFlags::WRITEABLE
                             | PageTableFlags::USER_ACCESSIBLE,
@@ -149,7 +148,7 @@ impl VirtualMemoryManager for PageMap {
             return Err(MapError::PageAlreadyMapped(entry.frame().unwrap()));
         }
 
-        entry.set_frame(frame, flags);
+        entry.set_frame(&frame, flags);
 
         Self::invalidate_page(page);
 
@@ -172,7 +171,6 @@ impl VirtualMemoryManager for PageMap {
         let frame = entry.frame().map_err(|err| match err {
             FrameError::FrameNotPresent => UnmapError::PageNotMapped,
             FrameError::HugePageNotSupported => UnmapError::ParentEntryHugePage,
-            _ => unreachable!(),
         })?;
 
         entry.set_unused();

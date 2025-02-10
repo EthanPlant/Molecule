@@ -5,12 +5,14 @@ use super::addr::PhysAddr;
 #[derive(Debug, PartialEq, Eq)]
 pub enum MemoryRegionType {
     Free,
-    Reserved,
 }
 
+/// An in-memory representation of a region in memory.
 #[derive(Debug)]
 pub struct MemoryRegion {
+    /// The starting address of the region.
     pub base: PhysAddr,
+    /// The region's size in bytes.
     pub size: usize,
     pub region_type: MemoryRegionType,
 }

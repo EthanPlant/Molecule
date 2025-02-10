@@ -47,6 +47,7 @@ bitflags::bitflags! {
 #[derive(Debug, Copy, Clone)]
 struct GdtAccessFlags;
 
+#[allow(dead_code)]
 impl GdtAccessFlags {
     /// The present flag: This is always 1 for a valid entry.
     const PRESENT: u8 = 1 << 7;

@@ -79,6 +79,7 @@ impl From<u8> for GateType {
 #[derive(Debug, Clone, Copy)]
 struct IdtEntryAttributes(u8);
 
+#[allow(dead_code)]
 impl IdtEntryAttributes {
     /// Create a new IDT entry attributes structure with the corresponding [`PrivilegeLevel`] and [`GateType`].
     const fn new(privilege: PrivilegeLevel, gate_type: GateType) -> Self {

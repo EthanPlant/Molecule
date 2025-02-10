@@ -12,19 +12,12 @@
 
 use core::arch::asm;
 
-use alloc::boxed::Box;
-use alloc::rc::Rc;
-use alloc::vec;
 use arch::arch_init;
-use dummy_alloc::DummyAlloc;
 use limine::request::{
     FramebufferRequest, HhdmRequest, MemoryMapRequest, RequestsEndMarker, RequestsStartMarker,
 };
 use limine::BaseRevision;
 use linked_list_allocator::LockedHeap;
-use memory::bootstrap::{BootstrapAlloc, BootstrapAllocRef};
-use memory::frame::{BuddyFrameAllocator, FrameAllocator, FRAME_ALLOCATOR};
-use memory::memmap::MemoryRegionIter;
 
 extern crate alloc;
 
@@ -47,10 +40,12 @@ static FRAMEBUFFER_REQUEST: FramebufferRequest = FramebufferRequest::new();
 
 #[used]
 #[link_section = ".requests"]
+#[allow(missing_docs)]
 pub static HHDM_REQUEST: HhdmRequest = HhdmRequest::new();
 
 #[used]
 #[link_section = ".requests"]
+#[allow(missing_docs)]
 pub static mut MEM_MAP_REQUEST: MemoryMapRequest = MemoryMapRequest::new();
 
 /// Define the stand and end markers for Limine requests.
@@ -62,6 +57,7 @@ static _START_MARKER: RequestsStartMarker = RequestsStartMarker::new();
 static _END_MARKER: RequestsEndMarker = RequestsEndMarker::new();
 
 #[global_allocator]
+#[allow(missing_docs)]
 pub static GLOBAL_ALLOC: LockedHeap = LockedHeap::empty();
 
 #[no_mangle]

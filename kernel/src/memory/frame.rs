@@ -1,16 +1,15 @@
+//! Physical frame management.
+
 use core::{alloc::Allocator, marker::PhantomData};
 
 use alloc::{fmt, vec::Vec};
 use bit_field::BitField;
-use limine::{
-    memory_map::{Entry, EntryType},
-    response::MemoryMapResponse,
-};
+use limine::memory_map::EntryType;
 use spin::mutex::Mutex;
 
 use crate::memory::{
     addr::align_up,
-    bootstrap::{self, BootstrapAlloc},
+    bootstrap::BootstrapAlloc,
     memmap::{MemoryRegionIter, MemoryRegionType},
 };
 
@@ -18,6 +17,7 @@ use super::{
     addr::PhysAddr, bootstrap::BootstrapAllocRef, memmap::MemoryRegion, PageSize, PageSize4K,
 };
 
+/// The global frame allocator.
 pub static FRAME_ALLOCATOR: LockedFrameAllocator = LockedFrameAllocator::new();
 
 const BUDDY_SIZE: [usize; 10] = [
@@ -35,24 +35,21 @@ const BUDDY_SIZE: [usize; 10] = [
 
 #[derive(Debug)]
 pub enum FrameError {
-    AddressNotAligned,
+    /// Attempting to read an unallocated frame.
     FrameNotPresent,
+    /// Attempting to read a large frame.
     HugePageNotSupported,
 }
 
+/// An representation of a frame.
 pub struct Frame<S: PageSize = PageSize4K> {
+    /// The start address of the frame, aligned to the frame size.
     start: PhysAddr,
     size: PhantomData<S>,
 }
 
 impl<S: PageSize> Frame<S> {
-    pub fn new_from_start(addr: PhysAddr) -> Result<Self, FrameError> {
-        if !addr.is_aligned(S::SIZE) {
-            return Err(FrameError::AddressNotAligned);
-        }
-        Ok(Self::containing_addr(addr))
-    }
-
+    /// Construct the frame containing `addr`.
     pub fn containing_addr(addr: PhysAddr) -> Self {
         Self {
             start: addr.align_down(S::SIZE),
@@ -75,14 +72,22 @@ impl<S: PageSize> fmt::Debug for Frame<S> {
     }
 }
 
+/// # Safety
+/// The implementer must ensure that `allocate_frame` returns a unique unused frame. Failure to do so can
+/// result in undefined behaviour.
 pub unsafe trait FrameAllocator {
+    /// Allocate a 4 KiB frame of physical memory. Returns the allocated Frame or `None` if no free frames are available.
     fn allocate_frame(&self) -> Option<Frame<PageSize4K>>;
+    #[allow(dead_code)]
+    /// Deallocate the given frame of physical memory.
     fn deallocate_frame(&self, frame: Frame<PageSize4K>);
 }
 
 pub struct LockedFrameAllocator(Mutex<BuddyFrameAllocator>);
 
 impl LockedFrameAllocator {
+    /// Create a new unitialized locked frame allocator. The allocator **must** be initialized
+    /// with [`init()`](LockedFrameAllocator::init) before any allocation is attempted.
     pub const fn new() -> Self {
         let bootstrap_ref = BootstrapAllocRef {
             inner: core::ptr::null(),
@@ -107,16 +112,19 @@ impl LockedFrameAllocator {
         }))
     }
 
+    /// Initialize the frame allocator with the memory map returned from Limine.
     pub fn init(&self, mem_map: &mut limine::response::MemoryMapResponse) {
         let mut allocator = self.0.lock();
         *allocator = BuddyFrameAllocator::new(mem_map);
     }
 
+    /// Allocate `size` bytes in physical memory. Returns `None` if there isn't enough available space.
     pub fn alloc(&self, size: usize) -> Option<PhysAddr> {
         let order = Self::order_from_size(size);
         self.0.lock().allocate_frame(order)
     }
 
+    /// Deallocate `size` bytes starting from `addr`.
     pub fn dealloc(&self, addr: PhysAddr, size: usize) {
         let order = Self::order_from_size(size);
         self.0.lock().deallocate_frame(addr, order);
@@ -179,17 +187,6 @@ impl<A: Allocator> Bitmap<A> {
         self.bitmap[block_idx].get_bit(bit_idx)
     }
 
-    pub fn find_first_unset(&self) -> Option<usize> {
-        for (i, block) in self.bitmap.iter().enumerate() {
-            let trailing_ones = block.trailing_ones();
-            if trailing_ones < Self::BLOCK_BITS as u32 {
-                return Some(i * Self::BLOCK_BITS + trailing_ones as usize);
-            }
-        }
-
-        None
-    }
-
     pub fn find_first_set(&self) -> Option<usize> {
         for (i, block) in self.bitmap.iter().enumerate() {
             let trailing_zeros = block.trailing_zeros();
@@ -214,6 +211,7 @@ impl<A: Allocator> Bitmap<A> {
     }
 }
 
+/// A buddy allocator used to allocate physical frames in memory.
 #[derive(Debug)]
 pub struct BuddyFrameAllocator {
     buddies: [Bitmap<BootstrapAllocRef>; 10],
@@ -223,6 +221,7 @@ pub struct BuddyFrameAllocator {
 }
 
 impl BuddyFrameAllocator {
+    /// Construct a new buddy allocator from a memory map.
     pub fn new(memory_map_resp: &mut limine::response::MemoryMapResponse) -> Self {
         let mem_map = memory_map_resp.entries_mut();
         let requested_size = align_up(
@@ -333,7 +332,7 @@ impl BuddyFrameAllocator {
     fn deallocate_frame(&mut self, mut addr: PhysAddr, mut order: usize) {
         while order < BUDDY_SIZE.len() {
             if order < BUDDY_SIZE.len() - 1 {
-                let buddy = self.get_buddy(addr, order);
+                let buddy = Self::get_buddy(addr, order);
                 if self.clear_bit(buddy, order) {
                     addr = core::cmp::min(addr, buddy);
                     order += 1;
@@ -348,7 +347,7 @@ impl BuddyFrameAllocator {
         }
     }
 
-    fn get_buddy(&self, addr: PhysAddr, order: usize) -> PhysAddr {
+    fn get_buddy(addr: PhysAddr, order: usize) -> PhysAddr {
         let size = BUDDY_SIZE[order];
         let base = addr.align_down(size * 2);
 
@@ -430,38 +429,3 @@ impl BuddyFrameAllocator {
         0
     }
 }
-
-// pub struct BumpFrameAllocator {
-//     mem_map: &'static [&'static Entry],
-//     next: usize,
-// }
-
-// impl BumpFrameAllocator {
-//     pub unsafe fn init(mem_map: &'static MemoryMapResponse) -> Self {
-//         Self {
-//             mem_map: mem_map.entries(),
-//             next: 0,
-//         }
-//     }
-
-//     fn usable_frames(&self) -> impl Iterator<Item = PhysAddr> {
-//         self.mem_map
-//             .iter()
-//             .filter(|entry| entry.entry_type == EntryType::USABLE)
-//             .map(|range| range.base..range.base + range.length)
-//             .flat_map(|range| range.step_by(4096))
-//             .map(|addr| PhysAddr::new(addr as usize))
-//     }
-// }
-
-// unsafe impl FrameAllocator for BumpFrameAllocator {
-//     fn allocate_frame(&mut self) -> Option<PhysAddr> {
-//         let frame = self.usable_frames().nth(self.next);
-//         self.next += 1;
-//         frame
-//     }
-
-//     fn deallocate_frame(&mut self, _frame: PhysAddr) {
-//         unimplemented!()
-//     }
-// }

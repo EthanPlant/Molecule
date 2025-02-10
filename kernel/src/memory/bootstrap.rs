@@ -1,28 +1,33 @@
+//! A bootstrap allocator used to initialize the memory management system until the heap can be initialized.
+//! This is a simple first-free-fit allocator with no ability to deallocate memory.
+
 use core::{
     alloc::{AllocError, Allocator, Layout},
     ptr::NonNull,
 };
 
-use limine::{memory_map, response::MemoryMapResponse};
 use spin::mutex::Mutex;
 
-use crate::memory::addr::PhysAddr;
+use crate::memory::{PageSize, PageSize4K};
 
 use super::{addr::align_up, memmap::MemoryRegion};
 
 pub struct BootstrapAlloc {
+    /// Free areas of memory that the allocator is allowed to use.
     pub memory_ranges: Mutex<&'static mut [MemoryRegion]>,
 }
 
 impl BootstrapAlloc {
+    /// Create a new instance of the boot allocator.
     pub fn new(memory_ranges: &'static mut [MemoryRegion]) -> Self {
         Self {
             memory_ranges: Mutex::new(memory_ranges),
         }
     }
 
+    /// Allocate `size` bytes, aligned up to 4 KiB.
     fn allocate(&self, size: usize) -> *mut u8 {
-        let size = align_up(size, 4096);
+        let size = align_up(size, PageSize4K::SIZE);
         for range in self.memory_ranges.lock().iter_mut() {
             if range.size >= size {
                 let addr = range.base;
