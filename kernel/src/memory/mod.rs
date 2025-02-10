@@ -3,6 +3,8 @@ use frame::{Frame, FrameError};
 use limine::memory_map::EntryType;
 use page::Page;
 
+use crate::arch::paging::page_table::PageTableFlags;
+
 pub mod addr;
 pub mod bootstrap;
 pub mod frame;
@@ -22,7 +24,23 @@ impl PageSize for PageSize4K {
     const SIZE_STR: &'static str = "4KiB";
 }
 
+#[derive(Debug)]
+pub enum MapError {
+    AllocationFailed,
+    PageAlreadyMapped(Frame),
+}
+
+#[derive(Debug)]
+pub enum UnmapError {
+    ParentEntryHugePage,
+    PageNotMapped,
+    InvalidFrameAddress(Frame),
+}
+
 pub trait VirtualMemoryManager {
     fn translate_addr(&self, addr: VirtAddr) -> Option<PhysAddr>;
-    fn translate_page(&self, page: Page<PageSize4K>) -> Result<Frame, FrameError>;
+    fn translate_page(&self, page: Page) -> Result<Frame, FrameError>;
+
+    fn map_page(&self, page: Page, frame: Frame, flags: PageTableFlags) -> Result<Frame, MapError>;
+    fn unmap_page(&self, page: Page) -> Result<Frame, UnmapError>;
 }

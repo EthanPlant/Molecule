@@ -9,7 +9,7 @@ use bitflags::bitflags;
 use crate::{
     memory::{
         addr::{PhysAddr, VirtAddr, HHDM_OFFSET},
-        frame::{Frame, FrameError, FRAME_ALLOCATOR},
+        frame::{Frame, FrameAllocator, FrameError, FRAME_ALLOCATOR},
         page::Page,
         PageSize, PageSize4K, VirtualMemoryManager,
     },
@@ -168,4 +168,25 @@ pub unsafe fn active_level_4_table() -> PageMap {
 
 pub fn init(mem_map: &mut limine::response::MemoryMapResponse) {
     FRAME_ALLOCATOR.init(mem_map);
+
+    let page_map = unsafe { active_level_4_table() };
+    let page = Page::containing_addr(VirtAddr::new(0xDEAD_BEEF));
+    let frame = page_map.map_page(
+        page,
+        FRAME_ALLOCATOR.allocate_frame().unwrap(),
+        PageTableFlags::PRESENT | PageTableFlags::WRITEABLE,
+    );
+    log::trace!("Mapped to {:x?}", frame);
+    log::trace!(
+        "Translated {:x?} --> {:x?}",
+        VirtAddr::new(0xDEAD_BEEF),
+        page_map.translate_page(page)
+    );
+    let frame = page_map.unmap_page(page);
+    log::trace!("Unmapped from {:x?}", frame);
+    log::trace!(
+        "Translated {:x?} --> {:x?}",
+        VirtAddr::new(0xDEAD_BEEF),
+        page_map.translate_addr(VirtAddr::new(0xDEAD_BEEF))
+    );
 }
