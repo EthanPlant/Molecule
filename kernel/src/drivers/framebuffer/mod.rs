@@ -1,8 +1,11 @@
 use core::sync::atomic::{AtomicPtr, Ordering};
 
+use color::Color;
 use spin::{mutex::Mutex, Once};
 
 use crate::FRAMEBUFFER_REQUEST;
+
+pub mod color;
 
 pub static FRAMEBUFFER: Once<Mutex<FrameBufferInfo>> = Once::new();
 
@@ -27,13 +30,13 @@ impl FrameBufferInfo {
     }
 
     /// Clear the entire screen to a single color
-    pub fn clear_screen(&self, color: u32) {
+    pub fn clear_screen(&self, color: Color) {
         for y in 0..self.height {
             for x in 0..self.width {
                 let offset = (y * self.pitch) / 4 + x;
                 // Safety: The offset is guaranteed to be a valid location in the framebuffer
                 unsafe {
-                    *self.addr.load(Ordering::Relaxed).add(offset) = color;
+                    *self.addr.load(Ordering::Relaxed).add(offset) = color.value();
                 }
             }
         }
@@ -41,12 +44,12 @@ impl FrameBufferInfo {
 
     /// Draw a single pixel at the specified location
     /// If the pixel location is outside of the framebuffer, nothing occurs.
-    pub fn draw_pixel(&self, x: usize, y: usize, color: u32) {
+    pub fn draw_pixel(&self, x: usize, y: usize, color: Color) {
         if x < self.width && y < self.height {
             let offset = (y * self.pitch) / 4 + x;
             // Safety: The offset is guaranteed to be a valid location in the framebuffer
             unsafe {
-                *self.addr.load(Ordering::Relaxed).add(offset) = color;
+                *self.addr.load(Ordering::Relaxed).add(offset) = color.value();
             }
         }
     }

@@ -13,6 +13,7 @@
 use core::arch::asm;
 
 use arch::arch_init;
+use drivers::framebuffer::color::Color;
 use drivers::framebuffer::{self, framebuffer};
 use limine::request::{
     FramebufferRequest, HhdmRequest, MemoryMapRequest, RequestsEndMarker, RequestsStartMarker,
@@ -78,10 +79,10 @@ unsafe extern "C" fn kmain() -> ! {
     );
 
     framebuffer::init();
-    framebuffer().clear_screen(0x0000_0000);
+    framebuffer().clear_screen(Color::BLACK);
     for i in 0..1000 {
         for j in 0..1000 {
-            framebuffer().draw_pixel(j, i, (i as u32) << 24 | (j as u32) << 16 | 0xFF);
+            framebuffer().draw_pixel(j, i, Color::new(i as u8, j as u8, 0x00));
         }
     }
 
