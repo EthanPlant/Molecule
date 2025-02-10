@@ -57,6 +57,10 @@ impl VirtAddr {
         Ok(unsafe { core::slice::from_raw_parts_mut(self.as_mut_ptr(), bytes) })
     }
 
+    pub fn align_down<T: Into<usize>>(self, align: T) -> Self {
+        Self(align_down(self.0, align.into()))
+    }
+
     fn valid_read<T: Sized>(&self) -> Result<(), AddrError> {
         let raw = self.as_ptr::<T>();
 

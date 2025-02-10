@@ -6,11 +6,17 @@ use core::{
 
 use bitflags::bitflags;
 
-use crate::memory::{
-    addr::PhysAddr,
-    frame::{Frame, FrameError, FRAME_ALLOCATOR},
-    PageSize, PageSize4K,
+use crate::{
+    memory::{
+        addr::{PhysAddr, VirtAddr, HHDM_OFFSET},
+        frame::{Frame, FrameError, FRAME_ALLOCATOR},
+        page::Page,
+        PageSize, PageSize4K, VirtualMemoryManager,
+    },
+    FRAMEBUFFER_REQUEST,
 };
+
+use super::PageMap;
 
 bitflags! {
     #[derive(Debug, Copy, Clone)]
@@ -137,24 +143,29 @@ impl IndexMut<usize> for PageTable {
     }
 }
 
-pub unsafe fn active_level_4_table() -> &'static mut PageTable {
+impl Index<u16> for PageTable {
+    type Output = PageTableEntry;
+
+    fn index(&self, index: u16) -> &Self::Output {
+        &self.entries[index as usize]
+    }
+}
+
+impl IndexMut<u16> for PageTable {
+    fn index_mut(&mut self, index: u16) -> &mut Self::Output {
+        &mut self.entries[index as usize]
+    }
+}
+
+pub unsafe fn active_level_4_table() -> PageMap {
     let table_ptr = unsafe {
         let table_ptr: usize;
         asm!("mov rax, cr3", out("rax") table_ptr);
         table_ptr
     };
-    let page_table_addr = PhysAddr::new(table_ptr).as_hddm_virt();
-    let page_table: *mut PageTable = page_table_addr.as_mut_ptr();
-
-    &mut *page_table
+    PageMap::from_cr3(PhysAddr::new(table_ptr))
 }
 
 pub fn init(mem_map: &mut limine::response::MemoryMapResponse) {
-    let level_4_table = unsafe { active_level_4_table() };
     FRAME_ALLOCATOR.init(mem_map);
-    for (i, entry) in level_4_table.iter().enumerate() {
-        if !entry.is_unused() {
-            log::debug!("L4 Entry {i}: {:x?}", entry);
-        }
-    }
 }
