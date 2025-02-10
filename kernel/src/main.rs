@@ -13,6 +13,7 @@
 use core::arch::asm;
 
 use arch::arch_init;
+use drivers::framebuffer::{self, framebuffer};
 use limine::request::{
     FramebufferRequest, HhdmRequest, MemoryMapRequest, RequestsEndMarker, RequestsStartMarker,
 };
@@ -76,16 +77,11 @@ unsafe extern "C" fn kmain() -> ! {
         HHDM_REQUEST.get_response().unwrap().offset()
     );
 
-    if let Some(framebuffer_response) = FRAMEBUFFER_REQUEST.get_response() {
-        if let Some(framebuffer) = framebuffer_response.framebuffers().next() {
-            for i in 0..100_u64 {
-                // Calculate the pixel offset using the framebuffer information we obtained above.
-                // We skip `i` scanlines (pitch is provided in bytes) and add `i * 4` to skip `i` pixels forward.
-                let pixel_offset = i * framebuffer.pitch() + i * 4;
-
-                // Write 0xFFFFFFFF to the provided pixel offset to fill it white.
-                *(framebuffer.addr().add(pixel_offset as usize) as *mut u32) = 0xFFFFFFFF;
-            }
+    framebuffer::init();
+    framebuffer().clear_screen(0x0000_0000);
+    for i in 0..1000 {
+        for j in 0..1000 {
+            framebuffer().draw_pixel(j, i, (i as u32) << 24 | (j as u32) << 16 | 0xFF);
         }
     }
 
