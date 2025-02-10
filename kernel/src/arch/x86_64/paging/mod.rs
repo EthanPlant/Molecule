@@ -34,7 +34,7 @@ impl VirtAddr {
 }
 
 pub fn init(mem_map: &mut limine::response::MemoryMapResponse) {
-    page_table::init(mem_map);
+    FRAME_ALLOCATOR.init(mem_map);
 }
 
 #[derive(Debug)]
@@ -43,7 +43,7 @@ pub struct PageMap {
 }
 
 impl PageMap {
-    unsafe fn from_cr3(cr3: PhysAddr) -> Self {
+    pub unsafe fn from_cr3(cr3: PhysAddr) -> Self {
         Self { pml4: cr3 }
     }
 

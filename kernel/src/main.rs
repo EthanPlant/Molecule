@@ -13,12 +13,15 @@
 use core::arch::asm;
 
 use alloc::boxed::Box;
+use alloc::rc::Rc;
+use alloc::vec;
 use arch::arch_init;
 use dummy_alloc::DummyAlloc;
 use limine::request::{
     FramebufferRequest, HhdmRequest, MemoryMapRequest, RequestsEndMarker, RequestsStartMarker,
 };
 use limine::BaseRevision;
+use linked_list_allocator::LockedHeap;
 use memory::bootstrap::{BootstrapAlloc, BootstrapAllocRef};
 use memory::frame::{BuddyFrameAllocator, FrameAllocator, FRAME_ALLOCATOR};
 use memory::memmap::MemoryRegionIter;
@@ -59,7 +62,7 @@ static _START_MARKER: RequestsStartMarker = RequestsStartMarker::new();
 static _END_MARKER: RequestsEndMarker = RequestsEndMarker::new();
 
 #[global_allocator]
-static GLOBAL_ALLOC: DummyAlloc = DummyAlloc;
+pub static GLOBAL_ALLOC: LockedHeap = LockedHeap::empty();
 
 #[no_mangle]
 unsafe extern "C" fn kmain() -> ! {

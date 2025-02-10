@@ -3,10 +3,14 @@
 use core::mem;
 
 use interrupts::{exception::register_exceptions, idt};
+use paging::{page_table::active_level_4_table, PageMap};
 
 use crate::{
     drivers, logger,
-    memory::addr::{VirtAddr, HHDM_OFFSET},
+    memory::{
+        addr::{VirtAddr, HHDM_OFFSET},
+        alloc::init_heap,
+    },
     HHDM_REQUEST, MEM_MAP_REQUEST,
 };
 
@@ -72,6 +76,11 @@ pub fn arch_init() {
             .expect("Didn't recieve memory map response from limine")
     };
     paging::init(mem_map_response);
+    log::debug!("Initialized memory manager");
+
+    init_heap(unsafe { &mut active_level_4_table() })
+        .expect("Failed to allocate space for kernel heap!");
+    log::debug!("Heap initialized");
 
     log::info!("Arch init done!");
 }

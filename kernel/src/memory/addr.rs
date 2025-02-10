@@ -75,8 +75,16 @@ impl VirtAddr {
 }
 
 impl From<VirtAddr> for usize {
-    fn from(addr: VirtAddr) -> usize {
-        addr.0
+    fn from(value: VirtAddr) -> Self {
+        value.0
+    }
+}
+
+impl Add<usize> for VirtAddr {
+    type Output = Self;
+
+    fn add(self, rhs: usize) -> Self::Output {
+        Self(self.0 + rhs)
     }
 }
 

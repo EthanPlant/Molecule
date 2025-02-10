@@ -6,6 +6,7 @@ use page::Page;
 use crate::arch::paging::page_table::PageTableFlags;
 
 pub mod addr;
+pub mod alloc;
 pub mod bootstrap;
 pub mod frame;
 pub mod memmap;
