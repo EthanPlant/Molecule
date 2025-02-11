@@ -3,7 +3,7 @@ use core::sync::atomic::{AtomicPtr, Ordering};
 use color::Color;
 use spin::{mutex::Mutex, Once};
 
-use crate::FRAMEBUFFER_REQUEST;
+use crate::{psf::PsfFont, FRAMEBUFFER_REQUEST};
 
 pub mod color;
 
@@ -51,6 +51,29 @@ impl FrameBufferInfo {
             unsafe {
                 *self.addr.load(Ordering::Relaxed).add(offset) = color.value();
             }
+        }
+    }
+
+    /// Draw a character on the screen at the specified location
+    pub fn draw_char(&self, x: usize, y: usize, color: Color, c: char, font: &PsfFont) {
+        let b = c as u8;
+        for row in 0..font.height() as usize {
+            let glyph = font.read_glyph_row(b as usize, row);
+
+            for pixel in 0..font.width() as usize {
+                let mask = 0x80 >> pixel;
+                let bit = glyph & mask;
+                if bit != 0 {
+                    self.draw_pixel(x + pixel, y + row, color);
+                }
+            }
+        }
+    }
+
+    /// Draw a string of text onto the screen at the specified location
+    pub fn draw_string(&self, x: usize, y: usize, color: Color, s: &str, font: &PsfFont) {
+        for (i, c) in s.chars().enumerate() {
+            self.draw_char(x + i * font.width() as usize + 1, y, color, c, font);
         }
     }
 }

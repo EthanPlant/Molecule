@@ -20,6 +20,7 @@ use limine::request::{
 };
 use limine::BaseRevision;
 use linked_list_allocator::LockedHeap;
+use psf::PsfFont;
 
 extern crate alloc;
 
@@ -27,6 +28,7 @@ mod arch;
 mod drivers;
 mod logger;
 mod memory;
+mod psf;
 
 /// Sets the base revision to the latest revision supported by the crate.
 /// See specification for further info.
@@ -80,11 +82,6 @@ unsafe extern "C" fn kmain() -> ! {
 
     framebuffer::init();
     framebuffer().clear_screen(Color::BLACK);
-    for i in 0..1000 {
-        for j in 0..1000 {
-            framebuffer().draw_pixel(j, i, Color::new(i as u8, j as u8, 0x00));
-        }
-    }
 
     hcf();
 }
