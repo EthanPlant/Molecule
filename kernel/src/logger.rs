@@ -1,6 +1,10 @@
+use core::sync::atomic::{AtomicBool, Ordering};
+
 use log::{Level, Metadata, Record};
 
 static LOGGER: MoleculeLogger = MoleculeLogger;
+
+static CONSOLE_DEBUG: AtomicBool = AtomicBool::new(false);
 
 struct MoleculeLogger;
 
@@ -20,8 +24,15 @@ impl log::Log for MoleculeLogger {
 
             let level = record.level();
 
+            let console_debug = CONSOLE_DEBUG.load(Ordering::Relaxed);
+
             macro generic_log($($arg:tt)*) {
-                serial_print!("{}", format_args!($($arg)*))
+                {
+                    serial_print!("{}", format_args!($($arg)*));
+                    if console_debug {
+                        $crate::drivers::framebuffer::console::print!("{}", format_args!($($arg)*));
+                    }
+                }
             }
 
             match level {
@@ -42,4 +53,8 @@ pub fn init() {
     log::set_logger(&LOGGER)
         .map(|()| log::set_max_level(log::LevelFilter::Trace))
         .unwrap();
+}
+
+pub fn set_console_debug(yes: bool) {
+    CONSOLE_DEBUG.store(yes, Ordering::Relaxed);
 }

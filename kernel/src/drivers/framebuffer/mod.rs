@@ -3,7 +3,7 @@ use core::sync::atomic::{AtomicPtr, Ordering};
 use color::Color;
 use spin::{mutex::Mutex, Once};
 
-use crate::{psf::PsfFont, FRAMEBUFFER_REQUEST};
+use crate::{logger, psf::PsfFont, FRAMEBUFFER_REQUEST};
 
 pub mod color;
 pub mod console;
@@ -77,6 +77,10 @@ impl FrameBufferInfo {
             self.draw_char(x + i * font.width() as usize + 1, y, color, c, font);
         }
     }
+
+    pub fn width(&self) -> usize {
+        self.width
+    }
 }
 
 pub fn init() {
@@ -92,6 +96,8 @@ pub fn init() {
                 .expect("No framebuffer returned from Limine"),
         ))
     });
+
+    logger::set_console_debug(true);
 }
 
 pub fn framebuffer() -> spin::MutexGuard<'static, FrameBufferInfo> {

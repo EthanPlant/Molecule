@@ -81,6 +81,10 @@ unsafe extern "C" fn kmain() -> ! {
         HHDM_REQUEST.get_response().unwrap().offset()
     );
 
+    for i in 0..1000 {
+        println!("{}", i);
+    }
+
     hcf();
 }
 

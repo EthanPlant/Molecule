@@ -6,7 +6,7 @@ use paging::page_table::active_level_4_table;
 use crate::{
     drivers::{
         self,
-        framebuffer::{self, color::Color, console::println, framebuffer},
+        framebuffer::{self, color::Color, framebuffer},
     },
     logger,
     memory::{
@@ -88,7 +88,7 @@ pub fn arch_init() {
 
     framebuffer::init();
     framebuffer().clear_screen(Color::BLACK);
-    println!("Console initialized, all further messages will be displayed");
+    log::info!("Console initialized, all further messages will be displayed");
 
     log::info!("Arch init done!");
 }

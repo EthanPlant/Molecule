@@ -3,34 +3,91 @@ use core::fmt::Write;
 use alloc::fmt;
 use spin::{Lazy, Mutex};
 
-use crate::psf::PsfFont;
+use crate::{drivers::uart_16650::serial_println, psf::PsfFont};
 
 use super::{color::Color, framebuffer};
 
 pub static CONSOLE: Lazy<Mutex<Console>> = Lazy::new(|| Mutex::new(Console::default()));
+
+struct ControlState {
+    color_buffer: [char; 2],
+    color_index: u8,
+}
+
+impl Default for ControlState {
+    fn default() -> Self {
+        Self {
+            color_buffer: ['\0', '\0'],
+            color_index: 0,
+        }
+    }
+}
 
 pub struct Console {
     font: PsfFont,
     cursor_x: usize,
     cursor_y: usize,
     color: Color,
+    control_mode: bool,
+    control_state: ControlState,
 }
 
 impl Console {
     pub fn write_char(&mut self, c: char) {
-        match c {
-            '\n' => self.newline(),
-            _ => {
-                framebuffer().draw_char(
-                    self.cursor_x * self.font.width() as usize + 1,
-                    self.cursor_y + self.font.height() as usize + 1,
-                    self.color,
-                    c,
-                    &self.font,
-                );
+        if self.control_mode {
+            match c {
+                '[' => self.control_state.color_index = 0,
+                '0'..='9' => {
+                    if self.control_state.color_index > 1 {
+                        self.control_mode = false;
+                        return;
+                    }
+
+                    self.control_state.color_buffer[self.control_state.color_index as usize] = c;
+                    self.control_state.color_index += 1;
+                }
+                ';' => {
+                    if self.control_state.color_index == 2 {
+                        self.set_color();
+                    }
+                    if self.control_state.color_index == 1 {
+                        self.graphics_command();
+                    }
+
+                    self.control_state.color_index = 0;
+                }
+                'm' => {
+                    if self.control_state.color_index == 2 {
+                        self.set_color();
+                    }
+                    if self.control_state.color_index == 1 {
+                        self.graphics_command();
+                    }
+
+                    self.control_mode = false;
+                    self.control_state.color_index = 0;
+                }
+                _ => {
+                    self.control_mode = false;
+                    self.control_state.color_index = 0;
+                }
+            }
+        } else {
+            match c {
+                '\n' => self.newline(),
+                '\x1b' => self.control_mode = true,
+                _ => {
+                    framebuffer().draw_char(
+                        self.cursor_x * self.font.width() as usize + 1,
+                        self.cursor_y * self.font.height() as usize + 1,
+                        self.color,
+                        c,
+                        &self.font,
+                    );
+                    self.inc_col();
+                }
             }
         }
-        self.inc_col();
     }
 
     pub fn write_str(&mut self, str: &str) {
@@ -39,8 +96,8 @@ impl Console {
         }
     }
 
-    fn get_wrap_pos(&self) -> usize {
-        framebuffer().pitch / self.font.width() as usize / 4
+    pub fn get_wrap_pos(&self) -> usize {
+        framebuffer().width / self.font.width() as usize
     }
 
     fn inc_col(&mut self) {
@@ -54,6 +111,31 @@ impl Console {
         self.cursor_x = 0;
         self.cursor_y += 1;
     }
+
+    fn set_color(&mut self) {
+        match self.control_state.color_buffer[0] {
+            '3' => match self.control_state.color_buffer[1] {
+                '0' => self.color = Color::BLACK,
+                '1' => self.color = Color::RED,
+                '2' => self.color = Color::GREEN,
+                '3' => self.color = Color::YELLOW,
+                '4' => self.color = Color::BLUE,
+                '5' => self.color = Color::MAGENTA,
+                '6' => self.color = Color::CYAN,
+                '7' => self.color = Color::WHITE,
+                '9' => self.color = Color::WHITE,
+                _ => unreachable!(),
+            },
+            _ => unreachable!(),
+        }
+    }
+
+    fn graphics_command(&mut self) {
+        match self.control_state.color_buffer[0] {
+            '0' => self.color = Color::WHITE,
+            _ => unreachable!(),
+        }
+    }
 }
 
 impl Default for Console {
@@ -63,6 +145,8 @@ impl Default for Console {
             cursor_x: 0,
             cursor_y: 0,
             color: Color::WHITE,
+            control_mode: false,
+            control_state: ControlState::default(),
         }
     }
 }
