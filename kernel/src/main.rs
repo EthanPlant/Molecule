@@ -19,6 +19,7 @@ use drivers::framebuffer::console::println;
 use drivers::framebuffer::{self, framebuffer};
 use limine::request::{
     FramebufferRequest, HhdmRequest, MemoryMapRequest, RequestsEndMarker, RequestsStartMarker,
+    RsdpRequest,
 };
 use limine::BaseRevision;
 use linked_list_allocator::LockedHeap;
@@ -26,6 +27,7 @@ use psf::PsfFont;
 
 extern crate alloc;
 
+mod acpi;
 mod arch;
 mod drivers;
 mod logger;
@@ -54,6 +56,11 @@ pub static HHDM_REQUEST: HhdmRequest = HhdmRequest::new();
 #[allow(missing_docs)]
 pub static mut MEM_MAP_REQUEST: MemoryMapRequest = MemoryMapRequest::new();
 
+#[used]
+#[link_section = ".requests"]
+#[allow(missing_docs)]
+pub static RSDP_REQUEST: RsdpRequest = RsdpRequest::new();
+
 /// Define the stand and end markers for Limine requests.
 #[used]
 #[link_section = ".requests_start_marker"]
@@ -81,10 +88,6 @@ unsafe extern "C" fn kmain() -> ! {
         "HHDM Address: {:x}",
         HHDM_REQUEST.get_response().unwrap().offset()
     );
-
-    for i in 0..1000 {
-        println!("{}", i);
-    }
 
     log::trace!("End of kmain");
 

@@ -4,6 +4,7 @@ use interrupts::{exception::register_exceptions, idt};
 use paging::page_table::active_level_4_table;
 
 use crate::{
+    acpi::rsdp::{self, Rsdp},
     drivers::{
         self,
         framebuffer::{self, color::Color, framebuffer},
@@ -13,7 +14,7 @@ use crate::{
         addr::{VirtAddr, HHDM_OFFSET},
         alloc::init_heap,
     },
-    HHDM_REQUEST, MEM_MAP_REQUEST,
+    HHDM_REQUEST, MEM_MAP_REQUEST, RSDP_REQUEST,
 };
 
 mod gdt;
@@ -89,6 +90,13 @@ pub fn arch_init() {
     framebuffer::init();
     framebuffer().clear_screen(Color::BLACK);
     log::info!("Console initialized, all further messages will be displayed");
+
+    let rsdp = Rsdp::new(
+        RSDP_REQUEST
+            .get_response()
+            .expect("Limine returned RSDP response"),
+    );
+    log::debug!("RSDP: {:?}", rsdp);
 
     log::info!("Arch init done!");
 }
