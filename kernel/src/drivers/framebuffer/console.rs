@@ -5,7 +5,7 @@ use spin::{Lazy, Mutex};
 
 use crate::{drivers::uart_16650::serial_println, psf::PsfFont};
 
-use super::{color::Color, framebuffer};
+use super::{color::Color, framebuffer, FRAMEBUFFER};
 
 pub static CONSOLE: Lazy<Mutex<Console>> = Lazy::new(|| Mutex::new(Console::default()));
 
@@ -96,8 +96,12 @@ impl Console {
         }
     }
 
-    pub fn get_wrap_pos(&self) -> usize {
+    fn get_wrap_pos(&self) -> usize {
         framebuffer().width / self.font.width() as usize
+    }
+
+    fn get_scroll_pos(&self) -> usize {
+        framebuffer().height / self.font.height() as usize
     }
 
     fn inc_col(&mut self) {
@@ -107,9 +111,21 @@ impl Console {
         }
     }
 
+    fn inc_row(&mut self) {
+        self.cursor_y += 1;
+        if self.cursor_y == self.get_scroll_pos() {
+            self.scroll();
+        }
+    }
+
+    fn scroll(&mut self) {
+        self.cursor_y -= 1;
+        framebuffer().scroll(self.font.height() as usize);
+    }
+
     fn newline(&mut self) {
         self.cursor_x = 0;
-        self.cursor_y += 1;
+        self.inc_row();
     }
 
     fn set_color(&mut self) {

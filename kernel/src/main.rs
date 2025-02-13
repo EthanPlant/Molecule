@@ -1,6 +1,7 @@
 #![feature(decl_macro)]
 #![feature(naked_functions)]
 #![feature(allocator_api)]
+#![feature(strict_provenance_atomic_ptr)]
 #![no_std]
 #![no_main]
 #![warn(clippy::pedantic)]
@@ -84,6 +85,8 @@ unsafe extern "C" fn kmain() -> ! {
     for i in 0..1000 {
         println!("{}", i);
     }
+
+    log::trace!("End of kmain");
 
     hcf();
 }

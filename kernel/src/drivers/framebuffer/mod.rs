@@ -1,9 +1,12 @@
-use core::sync::atomic::{AtomicPtr, Ordering};
+use core::{
+    ptr,
+    sync::atomic::{AtomicPtr, Ordering},
+};
 
 use color::Color;
 use spin::{mutex::Mutex, Once};
 
-use crate::{logger, psf::PsfFont, FRAMEBUFFER_REQUEST};
+use crate::{drivers::uart_16650::serial_println, logger, psf::PsfFont, FRAMEBUFFER_REQUEST};
 
 pub mod color;
 pub mod console;
@@ -78,8 +81,19 @@ impl FrameBufferInfo {
         }
     }
 
-    pub fn width(&self) -> usize {
-        self.width
+    pub fn scroll(&self, scroll_height: usize) {
+        assert!(scroll_height < self.height);
+        unsafe {
+            let scroll_size = self.pitch * scroll_height;
+            let dest = self.addr.load(Ordering::Acquire);
+            let src = dest.add(scroll_size / 4);
+
+            let size = (self.pitch * self.height).saturating_sub(scroll_size) / 4;
+            ptr::copy(src, dest, size);
+
+            let clear = dest.add(size);
+            ptr::write_bytes(clear, 0x00, scroll_size);
+        }
     }
 }
 
