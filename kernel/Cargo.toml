@@ -15,6 +15,7 @@ spin = { version = "0.9.8", default-features = false, features = [
     "spin_mutex",
     "rwlock",
     "once",
+    "lazy",
 ] }
 
 [profile.dev]

@@ -14,6 +14,7 @@ use core::arch::asm;
 
 use arch::arch_init;
 use drivers::framebuffer::color::Color;
+use drivers::framebuffer::console::println;
 use drivers::framebuffer::{self, framebuffer};
 use limine::request::{
     FramebufferRequest, HhdmRequest, MemoryMapRequest, RequestsEndMarker, RequestsStartMarker,
@@ -79,9 +80,6 @@ unsafe extern "C" fn kmain() -> ! {
         "HHDM Address: {:x}",
         HHDM_REQUEST.get_response().unwrap().offset()
     );
-
-    framebuffer::init();
-    framebuffer().clear_screen(Color::BLACK);
 
     hcf();
 }

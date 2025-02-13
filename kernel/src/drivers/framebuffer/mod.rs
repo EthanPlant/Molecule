@@ -6,6 +6,7 @@ use spin::{mutex::Mutex, Once};
 use crate::{psf::PsfFont, FRAMEBUFFER_REQUEST};
 
 pub mod color;
+pub mod console;
 
 pub static FRAMEBUFFER: Once<Mutex<FrameBufferInfo>> = Once::new();
 
