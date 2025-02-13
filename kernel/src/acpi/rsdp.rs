@@ -3,6 +3,8 @@ use core::{
     str,
 };
 
+use crate::memory::addr::PhysAddr;
+
 const RSDP_SIG: [u8; 8] = *b"RSD PTR ";
 
 const RSDP_V1_LEN: usize = 20;
@@ -37,6 +39,22 @@ impl Rsdp {
         *rsdp
     }
 
+    pub fn revision(&self) -> u8 {
+        self.revision
+    }
+
+    pub fn rsdt_addr(&self) -> PhysAddr {
+        PhysAddr::new(self.rsdt_addr as usize)
+    }
+
+    pub fn xsdt_addr(&self) -> Option<PhysAddr> {
+        if self.revision == 0 {
+            None
+        } else {
+            Some(PhysAddr::new(self.xsdt_addr as usize))
+        }
+    }
+
     fn validate(&self) -> Result<(), RsdpError> {
         if self.signature != RSDP_SIG {
             return Err(RsdpError::InvalidSignature);
@@ -52,8 +70,9 @@ impl Rsdp {
             self.length as usize
         };
 
-        let bytes =
-            unsafe { core::slice::from_raw_parts(self as *const Rsdp as *const u8, length) };
+        let bytes = unsafe {
+            core::slice::from_raw_parts(core::ptr::from_ref::<Rsdp>(self).cast::<u8>(), length)
+        };
         let sum = bytes.iter().fold(0u8, |sum, byte| sum.wrapping_add(*byte));
         if sum != 0 {
             return Err(RsdpError::InvalidChecksum);

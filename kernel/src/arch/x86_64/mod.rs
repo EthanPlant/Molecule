@@ -4,7 +4,10 @@ use interrupts::{exception::register_exceptions, idt};
 use paging::page_table::active_level_4_table;
 
 use crate::{
-    acpi::rsdp::{self, Rsdp},
+    acpi::{
+        rsdp::{self, Rsdp},
+        xsdt::{self, Xsdt},
+    },
     drivers::{
         self,
         framebuffer::{self, color::Color, framebuffer},
@@ -96,7 +99,10 @@ pub fn arch_init() {
             .get_response()
             .expect("Limine returned RSDP response"),
     );
-    log::debug!("RSDP: {:?}", rsdp);
+    log::debug!("RSDP: {:#?}", rsdp);
+
+    let xsdt = Xsdt::new(&rsdp);
+    log::debug!("XSDT: {:#x?}", xsdt);
 
     log::info!("Arch init done!");
 }
