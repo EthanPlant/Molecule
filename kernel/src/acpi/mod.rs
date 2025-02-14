@@ -4,11 +4,42 @@ use core::{
 };
 
 use alloc::fmt::format;
+use rsdp::{find_rsdt_addr, Rsdp};
+use rsdt::Rsdt;
+use spin::Lazy;
 
-use crate::memory::addr::VirtAddr;
+use crate::{memory::addr::VirtAddr, RSDP_REQUEST};
 
 pub mod rsdp;
-pub mod xsdt;
+pub mod rsdt;
+
+pub static ACPI_TABLES: Lazy<AcpiTables> = Lazy::new(|| {
+    init(
+        RSDP_REQUEST
+            .get_response()
+            .expect("RSDP response returned from Limine"),
+    )
+});
+
+#[derive(Debug)]
+pub struct AcpiTables {
+    rsdt: Rsdt,
+}
+
+impl AcpiTables {
+    pub fn rsdt(&self) -> &Rsdt {
+        &self.rsdt
+    }
+}
+
+pub fn init(resp: &limine::response::RsdpResponse) -> AcpiTables {
+    let addr = VirtAddr::new(resp.address() as usize);
+    let rsdt_addr = find_rsdt_addr(addr);
+    log::debug!("RSDT found at {:x?}", rsdt_addr);
+    let rsdt = Rsdt::new(rsdt_addr);
+
+    AcpiTables { rsdt }
+}
 
 #[repr(transparent)]
 #[derive(Clone, Copy, PartialEq, Eq)]

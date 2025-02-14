@@ -6,7 +6,8 @@ use paging::page_table::active_level_4_table;
 use crate::{
     acpi::{
         rsdp::{self, Rsdp},
-        xsdt::{self, Xsdt},
+        rsdt::{self, Rsdt},
+        ACPI_TABLES,
     },
     drivers::{
         self,
@@ -94,15 +95,7 @@ pub fn arch_init() {
     framebuffer().clear_screen(Color::BLACK);
     log::info!("Console initialized, all further messages will be displayed");
 
-    let rsdp = Rsdp::new(
-        RSDP_REQUEST
-            .get_response()
-            .expect("Limine returned RSDP response"),
-    );
-    log::debug!("RSDP: {:#?}", rsdp);
-
-    let xsdt = Xsdt::new(&rsdp);
-    log::debug!("XSDT: {:#x?}", xsdt);
+    log::debug!("{:#x?}", ACPI_TABLES.rsdt());
 
     log::info!("Arch init done!");
 }
