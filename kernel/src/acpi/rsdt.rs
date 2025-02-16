@@ -2,7 +2,7 @@ use crate::memory::addr::VirtAddr;
 
 use core::mem;
 
-use alloc::vec::Vec;
+use alloc::{borrow::ToOwned, vec::Vec};
 
 use crate::memory::addr::PhysAddr;
 
@@ -18,9 +18,15 @@ pub enum RsdtAddr {
 }
 
 #[derive(Copy, Clone, Debug)]
-struct RsdtEntry {
+pub struct RsdtEntry {
     signature: SdtSignature,
     addr: VirtAddr,
+}
+
+impl RsdtEntry {
+    pub fn addr(&self) -> VirtAddr {
+        self.addr
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -61,6 +67,14 @@ impl Rsdt {
                 }
             }
         }
+    }
+
+    pub fn find_table(&self, signature: SdtSignature) -> Option<RsdtEntry> {
+        self.sub_tables
+            .iter()
+            .filter(|&&table| table.signature == signature)
+            .next()
+            .copied()
     }
 }
 

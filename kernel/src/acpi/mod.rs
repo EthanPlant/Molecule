@@ -4,12 +4,14 @@ use core::{
 };
 
 use alloc::fmt::format;
+use madt::{Madt, MADT_SIG};
 use rsdp::{find_rsdt_addr, Rsdp};
 use rsdt::Rsdt;
 use spin::Lazy;
 
 use crate::{memory::addr::VirtAddr, RSDP_REQUEST};
 
+pub mod madt;
 pub mod rsdp;
 pub mod rsdt;
 
@@ -24,11 +26,16 @@ pub static ACPI_TABLES: Lazy<AcpiTables> = Lazy::new(|| {
 #[derive(Debug)]
 pub struct AcpiTables {
     rsdt: Rsdt,
+    madt: Madt,
 }
 
 impl AcpiTables {
     pub fn rsdt(&self) -> &Rsdt {
         &self.rsdt
+    }
+
+    pub fn madt(&self) -> &Madt {
+        &self.madt
     }
 }
 
@@ -38,7 +45,10 @@ pub fn init(resp: &limine::response::RsdpResponse) -> AcpiTables {
     log::debug!("RSDT found at {:x?}", rsdt_addr);
     let rsdt = Rsdt::new(rsdt_addr);
 
-    AcpiTables { rsdt }
+    let madt_entry = rsdt.find_table(MADT_SIG).expect("MADT is present");
+    let madt = Madt::new(madt_entry.addr());
+
+    AcpiTables { rsdt, madt }
 }
 
 #[repr(transparent)]

@@ -96,6 +96,11 @@ pub fn arch_init() {
     log::info!("Console initialized, all further messages will be displayed");
 
     log::debug!("{:#x?}", ACPI_TABLES.rsdt());
+    log::debug!("{:#x?}", ACPI_TABLES.madt().iter());
+
+    for entry in ACPI_TABLES.madt().iter() {
+        log::debug!("MADT Entry {:#x?}", entry);
+    }
 
     log::info!("Arch init done!");
 }
