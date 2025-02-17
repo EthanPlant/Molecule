@@ -74,7 +74,7 @@ impl GdtAccessFlags {
 /// A segment selector is a reference to a segment in the GDT, used to load a segment register.
 /// Internally this is represented as a 16-bit value, where the bottom two bits represent the privilege level of the segment,
 /// and the remaining bits represent the index of the segment in the GDT.
-#[derive(Debug, Copy, Clone, Default)]
+#[derive(Debug, Copy, Clone, Default, PartialEq, Eq)]
 #[repr(transparent)]
 pub struct SegmentSelector(u16);
 

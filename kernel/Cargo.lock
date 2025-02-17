@@ -77,7 +77,17 @@ dependencies = [
  "limine",
  "linked_list_allocator",
  "log",
+ "raw-cpuid",
  "spin",
+]
+
+[[package]]
+name = "raw-cpuid"
+version = "11.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c6928fa44c097620b706542d428957635951bade7143269085389d42c8a4927e"
+dependencies = [
+ "bitflags",
 ]
 
 [[package]]

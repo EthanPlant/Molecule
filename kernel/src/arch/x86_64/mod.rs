@@ -1,6 +1,6 @@
 //! Architecture specific code for ``x86_64``.
 
-use interrupts::{exception::register_exceptions, idt};
+use interrupts::{apic, exception::register_exceptions, idt};
 use paging::page_table::active_level_4_table;
 
 use crate::{
@@ -95,11 +95,14 @@ pub fn arch_init() {
     framebuffer().clear_screen(Color::BLACK);
     log::info!("Console initialized, all further messages will be displayed");
 
-    log::debug!("{:#x?}", ACPI_TABLES.rsdt());
-    log::debug!("{:#x?}", ACPI_TABLES.madt().iter());
+    let apic_type = apic::init();
+    log::debug!("APIC Type: {:?}", apic_type);
+
+    log::debug!("{:x?}", ACPI_TABLES.rsdt());
+    log::debug!("{:x?}", ACPI_TABLES.madt().iter());
 
     for entry in ACPI_TABLES.madt().iter() {
-        log::debug!("MADT Entry {:#x?}", entry);
+        log::debug!("MADT Entry {:x?}", entry);
     }
 
     log::info!("Arch init done!");

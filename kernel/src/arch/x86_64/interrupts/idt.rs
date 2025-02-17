@@ -76,7 +76,7 @@ impl From<u8> for GateType {
 /// The attributes of an IDT entry. This structure contains information about the privilege levels allowed to call this interrupt via the `INT` instruction,
 /// and the [`GateType`] of the entry.
 #[repr(transparent)]
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 struct IdtEntryAttributes(u8);
 
 #[allow(dead_code)]
@@ -106,7 +106,7 @@ impl IdtEntryAttributes {
 
 /// In-memory representation of an IDT entry.
 /// The IDT is an array of these structures, each representing a single interrupt or exception.
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 #[repr(C)]
 pub struct IdtEntry {
     /// The lower 16 bits of the address of the interrupt handler function.
@@ -129,7 +129,7 @@ impl IdtEntry {
     /// An empty IDT entry used as a placeholder.
     /// This entry has a null function pointer, a kernel code segment selector, and default attributes.
     /// Any attempt to call this entry will result in a Page Fault, as the function pointer is set to 0.
-    const EMPTY: Self = {
+    pub const EMPTY: Self = {
         // Safety: Segment selector and attributes are valid, we're using 0 as a placeholder function offset.
         // While this will lead to a Page Fault Exception if this interrupt is ever called, it is guaranteed to be well-defined behvaiour.
         unsafe {
