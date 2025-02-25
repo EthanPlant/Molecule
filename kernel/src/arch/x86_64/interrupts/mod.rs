@@ -5,7 +5,11 @@ use handler::{interrupt_stack, HandlerFunc};
 use idt::{IdtEntry, IDT};
 use spin::Mutex;
 
-use crate::drivers::framebuffer::console::print;
+use crate::{
+    arch::io::{inb, outb},
+    drivers::framebuffer::console::print,
+    TICKS,
+};
 
 use super::io;
 
@@ -39,11 +43,15 @@ pub fn allocate_vector() -> u8 {
 }
 
 interrupt_stack!(pit_handler, |_stack| {
+    {
+        print!(".");
+    }
+
     get_local_apic().eoi();
 });
 
 pub fn init_timer() {
-    let timer_freq = 50u32;
+    let timer_freq = 60u32;
     let div = 1193182 / timer_freq;
     unsafe {
         io::outb(0x43, 0x36);
@@ -52,5 +60,16 @@ pub fn init_timer() {
     }
     let vec = allocate_vector();
     register_handler(vec, pit_handler);
-    ioapic_setup_irq(0, vec, 0);
+    ioapic_setup_irq(0, vec, 1);
+}
+
+pub fn disable_pic() {
+    unsafe {
+        outb(0x21, 0xFF);
+        outb(0x80, 0);
+        outb(0xA1, 0xff);
+        outb(0x80, 0x00);
+    }
+
+    log::debug!("PIC Disabled");
 }

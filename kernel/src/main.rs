@@ -14,8 +14,9 @@
 use core::arch::asm;
 
 use arch::arch_init;
+use arch::interrupts::apic::get_local_apic;
 use drivers::framebuffer::color::Color;
-use drivers::framebuffer::console::println;
+use drivers::framebuffer::console::{print, println};
 use drivers::framebuffer::{self, framebuffer};
 use limine::request::{
     FramebufferRequest, HhdmRequest, MemoryMapRequest, RequestsEndMarker, RequestsStartMarker,
@@ -73,6 +74,8 @@ static _END_MARKER: RequestsEndMarker = RequestsEndMarker::new();
 #[allow(missing_docs)]
 pub static GLOBAL_ALLOC: LockedHeap = LockedHeap::empty();
 
+pub static mut TICKS: usize = 0;
+
 #[no_mangle]
 unsafe extern "C" fn kmain() -> ! {
     arch_init();
@@ -90,6 +93,10 @@ unsafe extern "C" fn kmain() -> ! {
     );
 
     log::trace!("End of kmain");
+
+    unsafe {
+        core::arch::asm!("sti");
+    }
 
     hcf();
 }

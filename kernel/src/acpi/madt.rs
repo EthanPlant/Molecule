@@ -62,6 +62,10 @@ impl Madt {
             }
         }
     }
+
+    pub fn local_apic_addr(&self) -> VirtAddr {
+        PhysAddr::new(self.lapic_addr as usize).as_hddm_virt()
+    }
 }
 
 #[derive(Debug, Clone, Copy)]

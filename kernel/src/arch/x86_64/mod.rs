@@ -27,7 +27,7 @@ use crate::{
 };
 
 mod gdt;
-mod interrupts;
+pub mod interrupts;
 pub mod io;
 pub mod paging;
 
@@ -61,6 +61,10 @@ impl From<u8> for PrivilegeLevel {
 /// 4. Registers handlers for CPU exceptions.
 /// 5. Initialize memory management and the heap allocator.
 pub fn arch_init() {
+    unsafe {
+        core::arch::asm!("cli");
+    }
+
     drivers::uart::init();
     logger::init();
     log::info!("Logger initialized!");
@@ -105,16 +109,13 @@ pub fn arch_init() {
 
     log::debug!("{:x?}", ACPI_TABLES.rsdt());
     log::debug!("{:x?}", ACPI_TABLES.madt().iter());
+    log::debug!("{:x?}", ACPI_TABLES.madt().local_apic_addr());
 
     for entry in ACPI_TABLES.madt().iter() {
         log::debug!("MADT Entry {:x?}", entry);
     }
 
     init_timer();
-
-    unsafe {
-        core::arch::asm!("sti");
-    }
 
     log::info!("Arch init done!");
 }
