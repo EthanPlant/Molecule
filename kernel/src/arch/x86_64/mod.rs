@@ -1,6 +1,10 @@
 //! Architecture specific code for ``x86_64``.
 
-use interrupts::{apic, exception::register_exceptions, idt};
+use interrupts::{
+    apic::{self, get_local_apic},
+    exception::register_exceptions,
+    idt, init_timer,
+};
 use paging::page_table::active_level_4_table;
 
 use crate::{
@@ -11,7 +15,8 @@ use crate::{
     },
     drivers::{
         self,
-        framebuffer::{self, color::Color, framebuffer},
+        framebuffer::{self, color::Color, console::println, framebuffer},
+        uart_16650::serial_println,
     },
     logger,
     memory::{
@@ -103,6 +108,12 @@ pub fn arch_init() {
 
     for entry in ACPI_TABLES.madt().iter() {
         log::debug!("MADT Entry {:x?}", entry);
+    }
+
+    init_timer();
+
+    unsafe {
+        core::arch::asm!("sti");
     }
 
     log::info!("Arch init done!");

@@ -1,10 +1,16 @@
 use core::mem;
 
-use crate::memory::addr::VirtAddr;
+use alloc::vec::Vec;
+use spin::RwLock;
+
+use crate::memory::addr::{PhysAddr, VirtAddr};
 
 use super::{SdtHeader, SdtSignature};
 
 pub const MADT_SIG: SdtSignature = SdtSignature(*b"APIC");
+
+pub static IO_APICS: RwLock<Vec<&'static IoApic>> = RwLock::new(Vec::new());
+pub static REDIRECTS: RwLock<Vec<&'static IntSrcOverride>> = RwLock::new(Vec::new());
 
 const MADT_HEADER_SIZE: usize = 0x2C;
 
@@ -26,12 +32,26 @@ impl Madt {
                 as *const u32)
         };
 
-        Self {
+        let madt = Self {
             header,
             lapic_addr,
             flags,
             addr: usize::from(addr),
+        };
+
+        for entry in madt.iter() {
+            match entry {
+                MadtEntry::IoApic(ioapic) => {
+                    IO_APICS.write().push(ioapic);
+                }
+                MadtEntry::IntSrcOverride(override_) => {
+                    REDIRECTS.write().push(override_);
+                }
+                _ => {}
+            }
         }
+
+        madt
     }
 
     pub fn iter(&self) -> MadtIter {
@@ -62,7 +82,7 @@ struct Lapic {
 
 #[derive(Debug)]
 #[repr(C, packed)]
-struct IoApic {
+pub struct IoApic {
     header: EntryHeader,
     ioapic_id: u8,
     reserved: u8,
@@ -70,14 +90,38 @@ struct IoApic {
     interrupt_base: u32,
 }
 
+impl IoApic {
+    pub fn addr(&self) -> VirtAddr {
+        PhysAddr::new(self.ioapic_addr as usize).as_hddm_virt()
+    }
+
+    pub fn interrupt_base(&self) -> u32 {
+        self.interrupt_base
+    }
+}
+
 #[derive(Debug)]
 #[repr(C, packed)]
-struct IntSrcOverride {
+pub struct IntSrcOverride {
     header: EntryHeader,
     bus: u8,
     irq: u8,
     system_int: u32,
     flags: u16,
+}
+
+impl IntSrcOverride {
+    pub fn irq(&self) -> u8 {
+        self.irq
+    }
+
+    pub fn system_int(&self) -> u32 {
+        self.system_int
+    }
+
+    pub fn flags(&self) -> u16 {
+        self.flags
+    }
 }
 
 #[derive(Debug)]

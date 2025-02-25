@@ -1,8 +1,13 @@
 //! ``x86_64`` interrupt handling.
 
-use handler::HandlerFunc;
+use apic::{get_local_apic, ioapic_setup_irq, LocalApic, LOCAL_APIC};
+use handler::{interrupt_stack, HandlerFunc};
 use idt::{IdtEntry, IDT};
 use spin::Mutex;
+
+use crate::drivers::framebuffer::console::print;
+
+use super::io;
 
 pub mod apic;
 pub mod exception;
@@ -31,4 +36,21 @@ pub fn allocate_vector() -> u8 {
 
     *vector += 1;
     copy
+}
+
+interrupt_stack!(pit_handler, |_stack| {
+    get_local_apic().eoi();
+});
+
+pub fn init_timer() {
+    let timer_freq = 50u32;
+    let div = 1193182 / timer_freq;
+    unsafe {
+        io::outb(0x43, 0x36);
+        io::outb(0x40, (div & 0xFF) as u8);
+        io::outb(0x40, ((div >> 8) & 0xFF) as u8);
+    }
+    let vec = allocate_vector();
+    register_handler(vec, pit_handler);
+    ioapic_setup_irq(0, vec, 0);
 }
