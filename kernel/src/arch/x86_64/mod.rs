@@ -1,5 +1,6 @@
 //! Architecture specific code for ``x86_64``.
 
+use alloc::{format, string::String};
 use interrupts::{
     apic::{self, get_local_apic},
     exception::register_exceptions,
@@ -126,4 +127,13 @@ pub fn arch_init() {
     //init_timer();
 
     log::info!("Arch init done!");
+}
+
+pub fn cpu_string() -> String {
+    let cpuid = raw_cpuid::CpuId::new();
+    let binding = cpuid.get_vendor_info();
+    let vendor = binding.as_ref().map_or_else(|| "unnown", |vf| vf.as_str());
+    let binding = cpuid.get_processor_brand_string();
+    let model = binding.as_ref().map_or_else(|| "unknown", |s| s.as_str());
+    format!("{vendor} {model}")
 }

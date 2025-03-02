@@ -429,3 +429,8 @@ impl BuddyFrameAllocator {
         0
     }
 }
+
+pub fn total_memory() -> usize {
+    let lock = FRAME_ALLOCATOR.0.lock();
+    lock.end - lock.base
+}

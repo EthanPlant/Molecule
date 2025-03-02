@@ -94,9 +94,17 @@ unsafe extern "C" fn kmain() -> ! {
 
     log::trace!("End of kmain");
 
-    unsafe {
-        core::arch::asm!("sti");
-    }
+    println!("Welcome to ");
+    println!("\x1b[36m  __  __       _                 _      ");
+    println!(" |  \\/  |     | |               | |     ");
+    println!(" | \\  / | ___ | | ___  ___ _   _| | ___ ");
+    println!(" | |\\/| |/ _ \\| |/ _ \\/ __| | | | |/ _ \\");
+    println!(" | |  | | (_) | |  __/ (__| |_| | |  __/");
+    println!(" |_|  |_|\\___/|_|\\___|\\___|\\__,_|_|\\___|");
+    println!("\x1b[0m");
+    println!("Version 0.1.0");
+    println!("CPU Model is {}", arch::cpu_string());
+    println!("Total memory: {} MiB", memory::total_memory() / 1024 / 1024);
 
     hcf();
 }

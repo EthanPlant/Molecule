@@ -11,6 +11,8 @@ pub mod frame;
 pub mod memmap;
 pub mod page;
 
+pub use frame::total_memory;
+
 pub trait PageSize: Copy + Eq + PartialOrd + Ord {
     const SIZE: usize;
     const SIZE_STR: &'static str;
