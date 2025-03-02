@@ -4,6 +4,7 @@ use core::{
 };
 
 use alloc::fmt::format;
+use hpet::{HpetTable, HPET_SIG};
 use madt::{Madt, MADT_SIG};
 use rsdp::{find_rsdt_addr, Rsdp};
 use rsdt::Rsdt;
@@ -11,6 +12,7 @@ use spin::Lazy;
 
 use crate::{memory::addr::VirtAddr, RSDP_REQUEST};
 
+pub mod hpet;
 pub mod madt;
 pub mod rsdp;
 pub mod rsdt;
@@ -27,6 +29,7 @@ pub static ACPI_TABLES: Lazy<AcpiTables> = Lazy::new(|| {
 pub struct AcpiTables {
     rsdt: Rsdt,
     madt: Madt,
+    hpet: HpetTable,
 }
 
 impl AcpiTables {
@@ -36,6 +39,10 @@ impl AcpiTables {
 
     pub fn madt(&self) -> &Madt {
         &self.madt
+    }
+
+    pub fn hpet(&self) -> &HpetTable {
+        &self.hpet
     }
 }
 
@@ -48,7 +55,9 @@ pub fn init(resp: &limine::response::RsdpResponse) -> AcpiTables {
     let madt_entry = rsdt.find_table(MADT_SIG).expect("MADT is present");
     let madt = Madt::new(madt_entry.addr());
 
-    AcpiTables { rsdt, madt }
+    let hpet = HpetTable::new(rsdt.find_table(HPET_SIG).expect("HPET is present").addr());
+
+    AcpiTables { rsdt, madt, hpet }
 }
 
 #[repr(transparent)]

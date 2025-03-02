@@ -9,6 +9,7 @@ use paging::page_table::active_level_4_table;
 
 use crate::{
     acpi::{
+        hpet,
         rsdp::{self, Rsdp},
         rsdt::{self, Rsdt},
         ACPI_TABLES,
@@ -110,12 +111,19 @@ pub fn arch_init() {
     log::debug!("{:x?}", ACPI_TABLES.rsdt());
     log::debug!("{:x?}", ACPI_TABLES.madt().iter());
     log::debug!("{:x?}", ACPI_TABLES.madt().local_apic_addr());
+    log::debug!("{:x?}", ACPI_TABLES.hpet());
 
     for entry in ACPI_TABLES.madt().iter() {
         log::debug!("MADT Entry {:x?}", entry);
     }
 
-    init_timer();
+    hpet::init_hpet(ACPI_TABLES.hpet());
+
+    log::debug!("Sleeping for 5 s");
+    hpet::hpet_sleep(5000);
+    log::debug!("Finished sleeping!");
+
+    //init_timer();
 
     log::info!("Arch init done!");
 }
