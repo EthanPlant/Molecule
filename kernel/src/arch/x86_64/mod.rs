@@ -80,14 +80,17 @@ pub fn arch_init() {
         )
     });
 
+    log::debug!("HHDM Offset: {:x?}", HHDM_OFFSET.get());
+
     gdt::init();
-    log::debug!("GDT initialized!");
+    log::info!("GDT initialized!");
+    log::debug!("GDT Address: {:x?}", gdt::gdt_addr());
 
     idt::init();
-    log::debug!("IDT initialized!");
+    log::info!("IDT initialized!");
+    log::debug!("IDT Address: {:x?}", idt::idt_addr());
 
     register_exceptions();
-    log::debug!("Exceptions registered!");
 
     #[allow(static_mut_refs)]
     let mem_map_response = unsafe {
@@ -96,35 +99,20 @@ pub fn arch_init() {
             .expect("Didn't recieve memory map response from limine")
     };
     paging::init(mem_map_response);
-    log::debug!("Initialized memory manager");
+    log::info!("Initialized memory manager");
 
     init_heap(unsafe { &mut active_level_4_table() })
         .expect("Failed to allocate space for kernel heap!");
-    log::debug!("Heap initialized");
+    log::info!("Heap initialized");
 
     framebuffer::init();
     framebuffer().clear_screen(Color::BLACK);
-    log::info!("Console initialized, all further messages will be displayed");
+    log::info!("Framebuffer console initialized, all further messages will be displayed");
 
     let apic_type = apic::init();
-    log::debug!("APIC Type: {:?}", apic_type);
-
-    log::debug!("{:x?}", ACPI_TABLES.rsdt());
-    log::debug!("{:x?}", ACPI_TABLES.madt().iter());
-    log::debug!("{:x?}", ACPI_TABLES.madt().local_apic_addr());
-    log::debug!("{:x?}", ACPI_TABLES.hpet());
-
-    for entry in ACPI_TABLES.madt().iter() {
-        log::debug!("MADT Entry {:x?}", entry);
-    }
+    log::info!("APIC initialized");
 
     hpet::init_hpet(ACPI_TABLES.hpet());
-
-    log::debug!("Sleeping for 5 s");
-    hpet::hpet_sleep(5000);
-    log::debug!("Finished sleeping!");
-
-    //init_timer();
 
     log::info!("Arch init done!");
 }

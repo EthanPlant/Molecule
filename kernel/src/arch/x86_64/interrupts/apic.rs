@@ -45,7 +45,6 @@ impl LocalApic {
             self.write(XAPIC_TPR, 0x00);
             self.write(XAPIC_SVR, 0x100 | SPURIOUS_VECTOR);
             let lvt_err_vector = allocate_vector();
-            log::trace!("{lvt_err_vector}");
             register_handler(lvt_err_vector, lvt_err_handler);
 
             self.write(XAPIC_LVT_ERR, lvt_err_vector as u32);
@@ -174,13 +173,11 @@ fn ioapic_set_redirect(vec: u8, gsi: u32, flags: u16, status: i32) {
         let entry = IO_APICS.read()[ioapic];
         let ioredtbl = (gsi - entry.interrupt_base()) * 2 + 16;
 
-        log::trace!("{:x}", redirect);
-
         unsafe {
             ioapic_write(ioapic, ioredtbl, redirect as _);
             ioapic_write(ioapic, ioredtbl + 1, (redirect as u64 >> 32) as _);
         }
-        log::trace!("Registered redirect (vec={vec}, gsi={gsi})");
+        log::debug!("Registered redirect (vec={vec}, gsi={gsi})");
     } else {
         log::warn!("Unable to register redirect (vec={vec}, gsi={gsi})");
     }
@@ -190,7 +187,6 @@ pub fn ioapic_setup_irq(irq: u8, vec: u8, status: i32) {
     let overrides = REDIRECTS.read();
 
     for entry in overrides.iter() {
-        log::trace!("{:?}", entry);
         if entry.irq() == irq {
             ioapic_set_redirect(vec, entry.system_int(), entry.flags(), status);
             return;

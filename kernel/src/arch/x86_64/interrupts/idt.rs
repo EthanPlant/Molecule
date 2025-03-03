@@ -2,10 +2,10 @@ use core::{arch::asm, ptr::addr_of};
 
 use spin::Mutex;
 
-use crate::arch::{
+use crate::{arch::{
     x86_64::gdt::{SegmentSelector, KERNEL_CODE_INDEX},
     PrivilegeLevel,
-};
+}, memory::addr::VirtAddr};
 
 use super::handler::HandlerFunc;
 
@@ -181,12 +181,14 @@ pub fn init() {
         addr_of!(IDT.lock().entries).addr() as u64,
     );
 
-    log::trace!("{:x?}", idt_descriptor);
-
     // Safety: IDT is well defined and the descriptor is valid.
     unsafe {
         load_idt(&idt_descriptor);
     }
+}
+
+pub fn idt_addr() -> VirtAddr {
+    VirtAddr::new(addr_of!(IDT.lock().entries).addr())
 }
 
 /// Load a [`IdtDescriptor`] into the CPU.

@@ -80,19 +80,11 @@ pub static mut TICKS: usize = 0;
 unsafe extern "C" fn kmain() -> ! {
     arch_init();
 
-    log::info!("Dropped into kmain!");
-    log::info!("Running Molecule {}", env!("CARGO_PKG_VERSION"));
+    log::info!("Starting Molecule {}", env!("CARGO_PKG_VERSION"));
 
     // All limine requests must also be referenced in a called function, otherwise they may be
     // removed by the linker.
     assert!(BASE_REVISION.is_supported());
-
-    log::debug!(
-        "HHDM Address: {:x}",
-        HHDM_REQUEST.get_response().unwrap().offset()
-    );
-
-    log::trace!("End of kmain");
 
     println!("Welcome to ");
     println!("\x1b[36m  __  __       _                 _      ");
@@ -102,7 +94,7 @@ unsafe extern "C" fn kmain() -> ! {
     println!(" | |  | | (_) | |  __/ (__| |_| | |  __/");
     println!(" |_|  |_|\\___/|_|\\___|\\___|\\__,_|_|\\___|");
     println!("\x1b[0m");
-    println!("Version 0.1.0");
+    println!("Version {}", env!("CARGO_PKG_VERSION"));
     println!("CPU Model is {}", arch::cpu_string());
     println!("Total memory: {} MiB", memory::total_memory() / 1024 / 1024);
 

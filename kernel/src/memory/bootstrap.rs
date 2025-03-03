@@ -34,8 +34,6 @@ impl BootstrapAlloc {
                 range.base += size;
                 range.size -= size;
 
-                log::trace!("Allocated {} bytes at {:x?}", size, addr);
-
                 return addr.as_hddm_virt().as_mut_ptr();
             }
         }

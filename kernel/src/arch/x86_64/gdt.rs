@@ -2,6 +2,8 @@
 
 use core::{arch::asm, mem, ptr::addr_of};
 
+use crate::memory::addr::VirtAddr;
+
 use super::PrivilegeLevel;
 
 const GDT_ENTRIES: usize = 3;
@@ -193,8 +195,10 @@ pub fn init() {
             PrivilegeLevel::Kernel,
         ));
     }
+}
 
-    log::trace!("GDT Entries: {:x?}", unsafe { GDT });
+pub fn gdt_addr() -> VirtAddr {
+    VirtAddr::new(addr_of!(GDT) as usize)
 }
 
 /// Loads the GDT into the CPU.

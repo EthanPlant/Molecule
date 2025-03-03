@@ -109,6 +109,7 @@ impl LockedFrameAllocator {
             free: [0; 10],
             base: PhysAddr::null(),
             end: PhysAddr::null(),
+            size: 0,
         }))
     }
 
@@ -218,6 +219,7 @@ pub struct BuddyFrameAllocator {
     free: [usize; 10],
     base: PhysAddr,
     end: PhysAddr,
+    size: usize,
 }
 
 impl BuddyFrameAllocator {
@@ -283,11 +285,10 @@ impl BuddyFrameAllocator {
             free: [0; 10],
             base,
             end,
+            size: 0,
         };
 
         let size = this.end - this.base;
-
-        log::info!("Memory size: {} frames", size / 4096);
 
         for (i, bsize) in BUDDY_SIZE.iter().enumerate() {
             let chunk = size / bsize;
@@ -297,8 +298,11 @@ impl BuddyFrameAllocator {
         for region in bootstrap_ref.get_inner().memory_ranges.lock().iter() {
             if region.region_type == MemoryRegionType::Free {
                 this.insert_range(region.base, region.base + region.size);
+                this.size += region.size;
             }
         }
+
+        log::info!("{} MiB free memory", this.size / 1024 / 1024);
 
         this
     }
@@ -431,6 +435,5 @@ impl BuddyFrameAllocator {
 }
 
 pub fn total_memory() -> usize {
-    let lock = FRAME_ALLOCATOR.0.lock();
-    lock.end - lock.base
+    FRAME_ALLOCATOR.0.lock().size
 }
