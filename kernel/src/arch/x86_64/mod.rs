@@ -115,6 +115,8 @@ pub fn arch_init() {
     apic::init();
     log::info!("APIC initialized");
 
+    unsafe { enable_interrupts() };
+
     log::info!("Arch init done!");
 }
 

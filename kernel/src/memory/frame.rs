@@ -5,12 +5,14 @@ use core::{alloc::Allocator, marker::PhantomData};
 use alloc::{fmt, vec::Vec};
 use bit_field::BitField;
 use limine::memory_map::EntryType;
-use spin::mutex::Mutex;
 
-use crate::memory::{
-    addr::align_up,
-    bootstrap::BootstrapAlloc,
-    memmap::{MemoryRegionIter, MemoryRegionType},
+use crate::{
+    memory::{
+        addr::align_up,
+        bootstrap::BootstrapAlloc,
+        memmap::{MemoryRegionIter, MemoryRegionType},
+    },
+    sync::Mutex,
 };
 
 use super::{

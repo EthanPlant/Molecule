@@ -4,9 +4,15 @@ use core::{
 };
 
 use color::Color;
-use spin::{mutex::Mutex, Once};
+use spin::Once;
 
-use crate::{drivers::uart_16650::serial_println, logger, psf::PsfFont, FRAMEBUFFER_REQUEST};
+use crate::{
+    drivers::uart_16650::serial_println,
+    logger,
+    psf::PsfFont,
+    sync::{Mutex, MutexGuard},
+    FRAMEBUFFER_REQUEST,
+};
 
 pub mod color;
 pub mod console;
@@ -114,9 +120,9 @@ pub fn init() {
     logger::set_console_debug(true);
 }
 
-pub fn framebuffer() -> spin::MutexGuard<'static, FrameBufferInfo> {
+pub fn framebuffer() -> MutexGuard<'static, FrameBufferInfo> {
     FRAMEBUFFER
         .get()
         .expect("Framebuffer is initialized")
-        .lock()
+        .lock_irq()
 }

@@ -1,7 +1,7 @@
 use core::{f64::MAX_EXP, ptr};
 
 use raw_cpuid::{CpuId, FeatureInfo};
-use spin::{Mutex, MutexGuard, Once};
+use spin::Once;
 
 use crate::{
     acpi::{
@@ -11,6 +11,7 @@ use crate::{
     },
     arch::io,
     memory::addr::{PhysAddr, VirtAddr},
+    sync::{Mutex, MutexGuard},
 };
 
 use super::{allocate_vector, disable_pic, handler::interrupt_stack, register_handler};

@@ -5,11 +5,11 @@ use core::arch::asm;
 use apic::{get_local_apic, ioapic_setup_irq, LocalApic, LOCAL_APIC};
 use handler::{interrupt_stack, HandlerFunc};
 use idt::{IdtEntry, IDT};
-use spin::Mutex;
 
 use crate::{
     arch::io::{inb, outb},
     drivers::framebuffer::console::print,
+    sync::Mutex,
     TICKS,
 };
 
@@ -55,8 +55,19 @@ pub fn disable_pic() {
     log::debug!("PIC Disabled");
 }
 
-pub fn enable_interrupts() {
-    unsafe {
-        asm!("sti");
-    }
+pub unsafe fn enable_interrupts() {
+    asm!("sti");
+}
+
+pub unsafe fn disable_interrupts() {
+    asm!("cli");
+}
+
+pub fn are_interrupts_enabled() -> bool {
+    let flags = unsafe {
+        let flags: u64;
+        asm!("pushf; pop {}", out(reg) flags, options(nomem, preserves_flags));
+        flags
+    };
+    flags & (1 << 9) != 0
 }

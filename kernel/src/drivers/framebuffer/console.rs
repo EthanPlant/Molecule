@@ -1,9 +1,9 @@
 use core::fmt::Write;
 
 use alloc::fmt;
-use spin::{Lazy, Mutex};
+use spin::Lazy;
 
-use crate::{drivers::uart_16650::serial_println, psf::PsfFont};
+use crate::{drivers::uart_16650::serial_println, psf::PsfFont, sync::Mutex};
 
 use super::{color::Color, framebuffer, FRAMEBUFFER};
 
@@ -186,7 +186,7 @@ pub macro println {
 #[doc(hidden)]
 pub fn print_internal(args: fmt::Arguments) {
     CONSOLE
-        .lock()
+        .lock_irq()
         .write_fmt(args)
         .expect("Console writing can not fail");
 }

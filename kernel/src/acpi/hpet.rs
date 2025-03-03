@@ -1,4 +1,4 @@
-use spin::{Mutex, Once};
+use spin::Once;
 
 use crate::memory::addr::{PhysAddr, VirtAddr};
 

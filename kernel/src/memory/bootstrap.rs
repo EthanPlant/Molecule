@@ -6,9 +6,10 @@ use core::{
     ptr::NonNull,
 };
 
-use spin::mutex::Mutex;
-
-use crate::memory::{PageSize, PageSize4K};
+use crate::{
+    memory::{PageSize, PageSize4K},
+    sync::Mutex,
+};
 
 use super::{addr::align_up, memmap::MemoryRegion};
 

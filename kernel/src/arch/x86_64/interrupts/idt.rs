@@ -1,13 +1,12 @@
 use core::{arch::asm, ptr::addr_of};
 
-use spin::Mutex;
-
 use crate::{
     arch::{
         x86_64::gdt::{SegmentSelector, KERNEL_CODE_INDEX},
         PrivilegeLevel,
     },
     memory::addr::VirtAddr,
+    sync::Mutex,
 };
 
 use super::handler::HandlerFunc;

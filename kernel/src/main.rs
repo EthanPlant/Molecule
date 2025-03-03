@@ -34,6 +34,7 @@ mod drivers;
 mod logger;
 mod memory;
 mod psf;
+mod sync;
 
 /// Sets the base revision to the latest revision supported by the crate.
 /// See specification for further info.
@@ -97,8 +98,6 @@ unsafe extern "C" fn kmain() -> ! {
     println!("Version {}", env!("CARGO_PKG_VERSION"));
     println!("CPU Model is {}", arch::cpu_string());
     println!("Total memory: {} MiB", memory::total_memory() / 1024 / 1024);
-
-    arch::interrupts::enable_interrupts();
 
     hcf();
 }

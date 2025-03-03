@@ -1,9 +1,9 @@
 use core::fmt::{self, Write};
 
 use bitflags::bitflags;
-use spin::{Mutex, Once};
+use spin::Once;
 
-use crate::arch::io;
+use crate::{arch::io, sync::Mutex};
 
 pub static COM_1: Once<Mutex<SerialPort>> = Once::new();
 
@@ -125,6 +125,8 @@ pub macro serial_println {
 #[doc(hidden)]
 pub fn serial_print_internal(args: fmt::Arguments) {
     if let Some(c) = COM_1.get() {
-        c.lock().write_fmt(args).expect("Failed to write to COM1");
+        c.lock_irq()
+            .write_fmt(args)
+            .expect("Failed to write to COM1");
     }
 }
