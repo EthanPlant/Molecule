@@ -91,7 +91,10 @@ impl LocalApic {
 
             log::debug!("Calibrated timer ticks: {}", ticks);
 
-            self.write(APIC_LVT_TIMER, TIMER_VEC.load(Ordering::Relaxed) as u32 | 0x20000);
+            self.write(
+                APIC_LVT_TIMER,
+                TIMER_VEC.load(Ordering::Relaxed) as u32 | 0x20000,
+            );
             self.write(APIC_TIMER_DIV, 0x1);
             self.write(APIC_TIMER_INIT, ticks);
         }

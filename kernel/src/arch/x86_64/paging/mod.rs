@@ -9,6 +9,7 @@ use crate::memory::{
     MapError, UnmapError, VirtualMemoryManager,
 };
 
+pub mod address_space;
 pub mod page_table;
 
 impl VirtAddr {
