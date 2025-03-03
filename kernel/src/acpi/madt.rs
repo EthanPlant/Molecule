@@ -179,7 +179,7 @@ impl Iterator for MadtIter {
             unsafe {
                 let entry_ptr = self.current;
                 let header = *self.current.cast::<EntryHeader>();
-                
+
                 self.current = self.current.offset(header.length as isize);
 
                 let item = match header.entry_type {

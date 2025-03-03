@@ -1,5 +1,7 @@
 //! ``x86_64`` interrupt handling.
 
+use core::arch::asm;
+
 use apic::{get_local_apic, ioapic_setup_irq, LocalApic, LOCAL_APIC};
 use handler::{interrupt_stack, HandlerFunc};
 use idt::{IdtEntry, IDT};
@@ -42,27 +44,6 @@ pub fn allocate_vector() -> u8 {
     copy
 }
 
-interrupt_stack!(pit_handler, |_stack| {
-    {
-        print!(".");
-    }
-
-    get_local_apic().eoi();
-});
-
-pub fn init_timer() {
-    let timer_freq = 60u32;
-    let div = 1193182 / timer_freq;
-    unsafe {
-        io::outb(0x43, 0x36);
-        io::outb(0x40, (div & 0xFF) as u8);
-        io::outb(0x40, ((div >> 8) & 0xFF) as u8);
-    }
-    let vec = allocate_vector();
-    register_handler(vec, pit_handler);
-    ioapic_setup_irq(0, vec, 1);
-}
-
 pub fn disable_pic() {
     unsafe {
         outb(0x21, 0xFF);
@@ -72,4 +53,10 @@ pub fn disable_pic() {
     }
 
     log::debug!("PIC Disabled");
+}
+
+pub fn enable_interrupts() {
+    unsafe {
+        asm!("sti");
+    }
 }

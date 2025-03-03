@@ -98,6 +98,8 @@ unsafe extern "C" fn kmain() -> ! {
     println!("CPU Model is {}", arch::cpu_string());
     println!("Total memory: {} MiB", memory::total_memory() / 1024 / 1024);
 
+    arch::interrupts::enable_interrupts();
+
     hcf();
 }
 

@@ -3,8 +3,9 @@
 use alloc::{format, string::String};
 use interrupts::{
     apic::{self, get_local_apic},
+    enable_interrupts,
     exception::register_exceptions,
-    idt, init_timer,
+    idt,
 };
 use paging::page_table::active_level_4_table;
 
@@ -109,10 +110,10 @@ pub fn arch_init() {
     framebuffer().clear_screen(Color::BLACK);
     log::info!("Framebuffer console initialized, all further messages will be displayed");
 
-    let apic_type = apic::init();
-    log::info!("APIC initialized");
-
     hpet::init_hpet(ACPI_TABLES.hpet());
+
+    apic::init();
+    log::info!("APIC initialized");
 
     log::info!("Arch init done!");
 }
@@ -120,7 +121,7 @@ pub fn arch_init() {
 pub fn cpu_string() -> String {
     let cpuid = raw_cpuid::CpuId::new();
     let binding = cpuid.get_vendor_info();
-    let vendor = binding.as_ref().map_or_else(|| "unnown", |vf| vf.as_str());
+    let vendor = binding.as_ref().map_or_else(|| "unknown", |vf| vf.as_str());
     let binding = cpuid.get_processor_brand_string();
     let model = binding.as_ref().map_or_else(|| "unknown", |s| s.as_str());
     format!("{vendor} {model}")

@@ -5,6 +5,7 @@ use spin::{Mutex, MutexGuard, Once};
 
 use crate::{
     acpi::{
+        hpet::hpet_sleep,
         madt::{MadtEntry, IO_APICS, REDIRECTS},
         ACPI_TABLES,
     },
@@ -22,6 +23,10 @@ const XAPIC_SVR: u32 = 0xF0;
 const XAPIC_LVT_ERR: u32 = 0x370;
 const XAPIC_ESR: u32 = 0x280;
 const XAPIC_EOI: u32 = 0x0B0;
+const APIC_LVT_TIMER: u32 = 0x320;
+const APIC_TIMER_INIT: u32 = 0x380;
+const APIC_TIMER_CURRENT: u32 = 0x390;
+const APIC_TIMER_DIV: u32 = 0x3E0;
 
 pub static LOCAL_APIC: Once<Mutex<LocalApic>> = Once::new();
 
@@ -48,6 +53,26 @@ impl LocalApic {
             register_handler(lvt_err_vector, lvt_err_handler);
 
             self.write(XAPIC_LVT_ERR, lvt_err_vector as u32);
+
+            self.timer_calibrate();
+        }
+    }
+
+    pub fn timer_calibrate(&mut self) {
+        let vec = allocate_vector();
+        register_handler(vec, timer_handler);
+        ioapic_setup_irq(0, vec, 0);
+
+        unsafe {
+            self.write(APIC_TIMER_DIV, 0x3);
+            self.write(APIC_TIMER_INIT, 0xFFFF_FFFF);
+            hpet_sleep(10);
+            self.write(APIC_LVT_TIMER, (1 << 16) | 0xFF);
+            let ticks = 0xFFFF_FFFF - self.read(APIC_TIMER_CURRENT);
+
+            self.write(APIC_LVT_TIMER, vec as u32 | 0x20000);
+            self.write(APIC_TIMER_DIV, 0x3);
+            self.write(APIC_TIMER_INIT, ticks);
         }
     }
 
@@ -56,10 +81,6 @@ impl LocalApic {
             self.write(XAPIC_ESR, 0);
             self.read(XAPIC_ESR)
         }
-    }
-
-    pub fn get_irr(&self) -> u32 {
-        unsafe { self.read(0x200) }
     }
 
     #[inline]
@@ -196,14 +217,14 @@ pub fn ioapic_setup_irq(irq: u8, vec: u8, status: i32) {
     ioapic_set_redirect(vec, irq as u32, 0, status);
 }
 
-pub fn init() -> ApicType {
+pub fn init() {
     let feature_info = CpuId::new()
         .get_feature_info()
         .expect("Able to retrieve CPU feature info");
     let apic_type = ApicType::from(feature_info);
 
     if apic_type == ApicType::None {
-        return apic_type;
+        return;
     }
 
     let apic_addr = unsafe { io::rdmsr(APIC_BASE_MSR) };
@@ -216,6 +237,9 @@ pub fn init() -> ApicType {
     disable_pic();
 
     LOCAL_APIC.call_once(move || Mutex::new(lapic));
-
-    apic_type
 }
+
+interrupt_stack!(timer_handler, |_stack| {
+    log::debug!("Timer tick!");
+    get_local_apic().eoi();
+});
