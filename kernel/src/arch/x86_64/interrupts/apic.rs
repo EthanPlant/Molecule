@@ -1,4 +1,9 @@
-use core::{f64::MAX_EXP, ops::{Add, AddAssign}, ptr};
+use core::{
+    f64::MAX_EXP,
+    ops::{Add, AddAssign},
+    ptr,
+    sync::atomic::{AtomicBool, AtomicU64, AtomicUsize, Ordering},
+};
 
 use raw_cpuid::{CpuId, FeatureInfo};
 use spin::{Lazy, Once};
@@ -8,7 +13,11 @@ use crate::{
         hpet::hpet_sleep,
         madt::{MadtEntry, IO_APICS, REDIRECTS},
         ACPI_TABLES,
-    }, arch::io, drivers::framebuffer::console::print, memory::addr::{PhysAddr, VirtAddr}, sync::{Mutex, MutexGuard}
+    },
+    arch::io,
+    drivers::framebuffer::console::print,
+    memory::addr::{PhysAddr, VirtAddr},
+    sync::{Mutex, MutexGuard},
 };
 
 use super::{allocate_vector, disable_pic, handler::interrupt_stack, register_handler};
@@ -16,6 +25,7 @@ use super::{allocate_vector, disable_pic, handler::interrupt_stack, register_han
 const SPURIOUS_VECTOR: u32 = 0xFF;
 
 const APIC_BASE_MSR: u32 = 0x1B;
+const XAPIC_ID: u32 = 0x020;
 const XAPIC_TPR: u32 = 0x080;
 const XAPIC_SVR: u32 = 0xF0;
 const XAPIC_LVT_ERR: u32 = 0x370;
@@ -26,8 +36,14 @@ const APIC_TIMER_INIT: u32 = 0x380;
 const APIC_TIMER_CURRENT: u32 = 0x390;
 const APIC_TIMER_DIV: u32 = 0x3E0;
 
+pub static CPU_COUNT: AtomicUsize = AtomicUsize::new(0);
+
 pub static LOCAL_APIC: Once<Mutex<LocalApic>> = Once::new();
+static BSP_APIC_ID: AtomicU64 = AtomicU64::new(0);
+
 pub static TICKS: Lazy<Mutex<u64>> = Lazy::new(|| Mutex::new(0));
+
+static BSP_READY: AtomicBool = AtomicBool::new(false);
 
 pub struct LocalApic {
     addr: VirtAddr,
@@ -84,6 +100,10 @@ impl LocalApic {
         }
     }
 
+    fn bsp_id(&self) -> u32 {
+        unsafe { self.read(XAPIC_ID) }
+    }
+
     #[inline]
     pub fn eoi(&mut self) {
         unsafe {
@@ -135,6 +155,22 @@ impl From<FeatureInfo> for ApicType {
 
 pub fn get_local_apic() -> MutexGuard<'static, LocalApic> {
     LOCAL_APIC.get().expect("Lapic is initialized").lock()
+}
+
+pub fn get_cpu_count() -> usize {
+    CPU_COUNT.load(Ordering::Relaxed)
+}
+
+pub fn get_bsp_id() -> u64 {
+    BSP_APIC_ID.load(Ordering::SeqCst)
+}
+
+pub fn get_bsp_ready() -> bool {
+    BSP_READY.load(Ordering::SeqCst)
+}
+
+pub fn set_bsp_ready() {
+    BSP_READY.store(true, Ordering::SeqCst);
 }
 
 unsafe fn ioapic_read(ioapic_id: usize, register: u32) -> u32 {
@@ -235,6 +271,10 @@ pub fn init() {
 
     let mut lapic = LocalApic::new(addr, apic_type);
     lapic.init();
+
+    let bsp_id = lapic.bsp_id();
+    BSP_APIC_ID.store(bsp_id as u64, Ordering::SeqCst);
+
     disable_pic();
 
     LOCAL_APIC.call_once(move || Mutex::new(lapic));

@@ -13,14 +13,13 @@
 
 use core::arch::asm;
 
-use arch::arch_init;
 use arch::interrupts::apic::get_local_apic;
 use drivers::framebuffer::color::Color;
 use drivers::framebuffer::console::{print, println};
 use drivers::framebuffer::{self, framebuffer};
 use limine::request::{
     FramebufferRequest, HhdmRequest, MemoryMapRequest, RequestsEndMarker, RequestsStartMarker,
-    RsdpRequest,
+    RsdpRequest, SmpRequest,
 };
 use limine::BaseRevision;
 use linked_list_allocator::LockedHeap;
@@ -63,6 +62,11 @@ pub static mut MEM_MAP_REQUEST: MemoryMapRequest = MemoryMapRequest::new();
 #[allow(missing_docs)]
 pub static RSDP_REQUEST: RsdpRequest = RsdpRequest::new();
 
+#[used]
+#[link_section = ".requests"]
+#[allow(missing_docs)]
+pub static mut SMP_REQUEST: SmpRequest = SmpRequest::new();
+
 /// Define the stand and end markers for Limine requests.
 #[used]
 #[link_section = ".requests_start_marker"]
@@ -77,10 +81,7 @@ pub static GLOBAL_ALLOC: LockedHeap = LockedHeap::empty();
 
 pub static mut TICKS: usize = 0;
 
-#[no_mangle]
-unsafe extern "C" fn kmain() -> ! {
-    arch_init();
-
+pub fn kmain() -> ! {
     log::info!("Starting Molecule {}", env!("CARGO_PKG_VERSION"));
 
     // All limine requests must also be referenced in a called function, otherwise they may be

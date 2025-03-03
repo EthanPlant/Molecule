@@ -1,12 +1,15 @@
 //! Architecture specific code for ``x86_64``.
 
+use core::sync::atomic::Ordering;
+
 use alloc::{format, string::String};
 use interrupts::{
     apic::{self, get_local_apic},
-    enable_interrupts,
+    disable_interrupts, enable_interrupts,
     exception::register_exceptions,
     idt,
 };
+use limine::smp::Cpu;
 use paging::page_table::active_level_4_table;
 
 use crate::{
@@ -21,12 +24,12 @@ use crate::{
         framebuffer::{self, color::Color, console::println, framebuffer},
         uart_16650::serial_println,
     },
-    logger,
+    hcf, kmain, logger,
     memory::{
         addr::{VirtAddr, HHDM_OFFSET},
         alloc::init_heap,
     },
-    HHDM_REQUEST, MEM_MAP_REQUEST, RSDP_REQUEST,
+    HHDM_REQUEST, MEM_MAP_REQUEST, RSDP_REQUEST, SMP_REQUEST,
 };
 
 mod gdt;
@@ -63,10 +66,9 @@ impl From<u8> for PrivilegeLevel {
 /// 3. Initializes the [IDT](idt) (Interrupt Descriptor Table).
 /// 4. Registers handlers for CPU exceptions.
 /// 5. Initialize memory management and the heap allocator.
-pub fn arch_init() {
-    unsafe {
-        core::arch::asm!("cli");
-    }
+#[no_mangle]
+extern "C" fn x86_64_molecule_main() -> ! {
+    unsafe { disable_interrupts() };
 
     drivers::uart::init();
     logger::init();
@@ -93,6 +95,24 @@ pub fn arch_init() {
 
     register_exceptions();
 
+    let smp_response = unsafe {
+        SMP_REQUEST
+            .get_response_mut()
+            .expect("Recieved SMP response from limine")
+    };
+    let bsp_lapic_id = smp_response.bsp_lapic_id();
+
+    for cpu in smp_response.cpus_mut() {
+        apic::CPU_COUNT.fetch_add(1, Ordering::SeqCst);
+
+        if cpu.lapic_id == bsp_lapic_id {
+            continue;
+        }
+
+        cpu.goto_address.write(ap_main);
+    }
+    log::info!("CPU count: {}", apic::get_cpu_count());
+
     #[allow(static_mut_refs)]
     let mem_map_response = unsafe {
         MEM_MAP_REQUEST
@@ -117,7 +137,26 @@ pub fn arch_init() {
 
     unsafe { enable_interrupts() };
 
+    apic::set_bsp_ready();
+
     log::info!("Arch init done!");
+
+    kmain();
+}
+
+extern "C" fn ap_main(cpu: &Cpu) -> ! {
+    let ap_id = cpu.id as usize;
+    log::debug!("Initializing CPU {}", ap_id);
+
+    gdt::init();
+    log::info!("AP {}: GDT initialized!", ap_id);
+
+    while !apic::get_bsp_ready() {
+        core::hint::spin_loop();
+    }
+
+    log::debug!("AP {} initialized", ap_id);
+    kmain();
 }
 
 pub fn cpu_string() -> String {
