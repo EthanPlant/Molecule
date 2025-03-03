@@ -1,17 +1,14 @@
-use core::{f64::MAX_EXP, ptr};
+use core::{f64::MAX_EXP, ops::{Add, AddAssign}, ptr};
 
 use raw_cpuid::{CpuId, FeatureInfo};
-use spin::Once;
+use spin::{Lazy, Once};
 
 use crate::{
     acpi::{
         hpet::hpet_sleep,
         madt::{MadtEntry, IO_APICS, REDIRECTS},
         ACPI_TABLES,
-    },
-    arch::io,
-    memory::addr::{PhysAddr, VirtAddr},
-    sync::{Mutex, MutexGuard},
+    }, arch::io, drivers::framebuffer::console::print, memory::addr::{PhysAddr, VirtAddr}, sync::{Mutex, MutexGuard}
 };
 
 use super::{allocate_vector, disable_pic, handler::interrupt_stack, register_handler};
@@ -30,6 +27,7 @@ const APIC_TIMER_CURRENT: u32 = 0x390;
 const APIC_TIMER_DIV: u32 = 0x3E0;
 
 pub static LOCAL_APIC: Once<Mutex<LocalApic>> = Once::new();
+pub static TICKS: Lazy<Mutex<u64>> = Lazy::new(|| Mutex::new(0));
 
 pub struct LocalApic {
     addr: VirtAddr,
@@ -65,14 +63,16 @@ impl LocalApic {
         ioapic_setup_irq(0, vec, 0);
 
         unsafe {
-            self.write(APIC_TIMER_DIV, 0x3);
+            self.write(APIC_TIMER_DIV, 0x1);
             self.write(APIC_TIMER_INIT, 0xFFFF_FFFF);
             hpet_sleep(10);
             self.write(APIC_LVT_TIMER, (1 << 16) | 0xFF);
             let ticks = 0xFFFF_FFFF - self.read(APIC_TIMER_CURRENT);
 
+            log::debug!("Calibrated timer ticks: {}", ticks);
+
             self.write(APIC_LVT_TIMER, vec as u32 | 0x20000);
-            self.write(APIC_TIMER_DIV, 0x3);
+            self.write(APIC_TIMER_DIV, 0x1);
             self.write(APIC_TIMER_INIT, ticks);
         }
     }
@@ -241,6 +241,7 @@ pub fn init() {
 }
 
 interrupt_stack!(timer_handler, |_stack| {
-    log::debug!("Timer tick!");
+    let mut ticks = TICKS.lock();
+    *ticks += 1;
     get_local_apic().eoi();
 });
