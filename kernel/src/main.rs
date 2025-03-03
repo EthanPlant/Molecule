@@ -88,18 +88,6 @@ pub fn kmain() -> ! {
     // removed by the linker.
     assert!(BASE_REVISION.is_supported());
 
-    println!("Welcome to ");
-    println!("\x1b[36m  __  __       _                 _      ");
-    println!(" |  \\/  |     | |               | |     ");
-    println!(" | \\  / | ___ | | ___  ___ _   _| | ___ ");
-    println!(" | |\\/| |/ _ \\| |/ _ \\/ __| | | | |/ _ \\");
-    println!(" | |  | | (_) | |  __/ (__| |_| | |  __/");
-    println!(" |_|  |_|\\___/|_|\\___|\\___|\\__,_|_|\\___|");
-    println!("\x1b[0m");
-    println!("Version {}", env!("CARGO_PKG_VERSION"));
-    println!("CPU Model is {}", arch::cpu_string());
-    println!("Total memory: {} MiB", memory::total_memory() / 1024 / 1024);
-
     hcf();
 }
 

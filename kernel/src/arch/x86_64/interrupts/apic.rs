@@ -2,7 +2,7 @@ use core::{
     f64::MAX_EXP,
     ops::{Add, AddAssign},
     ptr,
-    sync::atomic::{AtomicBool, AtomicU64, AtomicUsize, Ordering},
+    sync::atomic::{AtomicBool, AtomicU64, AtomicU8, AtomicUsize, Ordering},
 };
 
 use raw_cpuid::{CpuId, FeatureInfo};
@@ -42,6 +42,7 @@ pub static LOCAL_APIC: Once<Mutex<LocalApic>> = Once::new();
 static BSP_APIC_ID: AtomicU64 = AtomicU64::new(0);
 
 pub static TICKS: Lazy<Mutex<u64>> = Lazy::new(|| Mutex::new(0));
+static TIMER_VEC: AtomicU8 = AtomicU8::new(0);
 
 static BSP_READY: AtomicBool = AtomicBool::new(false);
 
@@ -74,9 +75,12 @@ impl LocalApic {
     }
 
     pub fn timer_calibrate(&mut self) {
-        let vec = allocate_vector();
-        register_handler(vec, timer_handler);
-        ioapic_setup_irq(0, vec, 0);
+        if TIMER_VEC.load(Ordering::Relaxed) == 0 {
+            let vec = allocate_vector();
+            register_handler(vec, timer_handler);
+            ioapic_setup_irq(0, vec, 0);
+            TIMER_VEC.store(vec, Ordering::Relaxed);
+        }
 
         unsafe {
             self.write(APIC_TIMER_DIV, 0x1);
@@ -87,7 +91,7 @@ impl LocalApic {
 
             log::debug!("Calibrated timer ticks: {}", ticks);
 
-            self.write(APIC_LVT_TIMER, vec as u32 | 0x20000);
+            self.write(APIC_LVT_TIMER, TIMER_VEC.load(Ordering::Relaxed) as u32 | 0x20000);
             self.write(APIC_TIMER_DIV, 0x1);
             self.write(APIC_TIMER_INIT, ticks);
         }
@@ -278,6 +282,10 @@ pub fn init() {
     disable_pic();
 
     LOCAL_APIC.call_once(move || Mutex::new(lapic));
+}
+
+pub fn init_ap() {
+    get_local_apic().init();
 }
 
 interrupt_stack!(timer_handler, |_stack| {

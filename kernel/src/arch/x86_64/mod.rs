@@ -26,8 +26,7 @@ use crate::{
     },
     hcf, kmain, logger,
     memory::{
-        addr::{VirtAddr, HHDM_OFFSET},
-        alloc::init_heap,
+        self, addr::{VirtAddr, HHDM_OFFSET}, alloc::init_heap
     },
     HHDM_REQUEST, MEM_MAP_REQUEST, RSDP_REQUEST, SMP_REQUEST,
 };
@@ -137,25 +136,48 @@ extern "C" fn x86_64_molecule_main() -> ! {
 
     unsafe { enable_interrupts() };
 
-    apic::set_bsp_ready();
-
     log::info!("Arch init done!");
+
+    println!("Welcome to ");
+    println!("\x1b[36m  __  __       _                 _      ");
+    println!(" |  \\/  |     | |               | |     ");
+    println!(" | \\  / | ___ | | ___  ___ _   _| | ___ ");
+    println!(" | |\\/| |/ _ \\| |/ _ \\/ __| | | | |/ _ \\");
+    println!(" | |  | | (_) | |  __/ (__| |_| | |  __/");
+    println!(" |_|  |_|\\___/|_|\\___|\\___|\\__,_|_|\\___|");
+    println!("\x1b[0m");
+    println!("Version {}", env!("CARGO_PKG_VERSION"));
+    println!("CPU Model is {}", cpu_string());
+    println!("Total memory: {} MiB", memory::total_memory() / 1024 / 1024);
+
+    apic::set_bsp_ready();
 
     kmain();
 }
 
 extern "C" fn ap_main(cpu: &Cpu) -> ! {
-    let ap_id = cpu.id as usize;
-    log::debug!("Initializing CPU {}", ap_id);
+    unsafe { disable_interrupts() };
+
+    let ap_id = cpu.id;
+    log::debug!("Initializing CPU {} with LAPIC ID {}", ap_id, cpu.lapic_id);
 
     gdt::init();
     log::info!("AP {}: GDT initialized!", ap_id);
+
+    idt::init();
+    log::info!("AP {}: IDT initialized!", ap_id);
 
     while !apic::get_bsp_ready() {
         core::hint::spin_loop();
     }
 
+    apic::init_ap();
+    log::info!("AP {}: APIC initialized!", ap_id);
+
     log::debug!("AP {} initialized", ap_id);
+
+    unsafe { enable_interrupts() };
+
     kmain();
 }
 
