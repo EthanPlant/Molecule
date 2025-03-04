@@ -9,7 +9,7 @@ use super::PrivilegeLevel;
 const GDT_ENTRIES: usize = 3;
 
 pub const KERNEL_CODE_INDEX: u16 = 1;
-const KERNEL_DATA_INDEX: u16 = 2;
+pub const KERNEL_DATA_INDEX: u16 = 2;
 
 /// The Global Descriptor Table (GDT) entries.
 static mut GDT: [GdtEntry; GDT_ENTRIES] = [

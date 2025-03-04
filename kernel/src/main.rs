@@ -2,6 +2,7 @@
 #![feature(naked_functions)]
 #![feature(allocator_api)]
 #![feature(strict_provenance_atomic_ptr)]
+#![feature(ptr_internals)]
 #![no_std]
 #![no_main]
 #![warn(clippy::pedantic)]
@@ -23,6 +24,7 @@ use limine::request::{
 };
 use limine::BaseRevision;
 use linked_list_allocator::LockedHeap;
+use process::Process;
 use psf::PsfFont;
 
 extern crate alloc;
@@ -32,6 +34,7 @@ mod arch;
 mod drivers;
 mod logger;
 mod memory;
+mod process;
 mod psf;
 mod sync;
 
@@ -88,7 +91,17 @@ pub fn kmain() -> ! {
     // removed by the linker.
     assert!(BASE_REVISION.is_supported());
 
+    let idle = Process::new_idle();
+    log::debug!("Idle Process: {:?}", idle);
+
+    let kernel_process = Process::new_kernel(kernel_task, true);
+    log::debug!("Kernel Process: {:?}", kernel_process);
+
     hcf();
+}
+
+fn kernel_task() {
+    log::trace!("Hi");
 }
 
 #[panic_handler]

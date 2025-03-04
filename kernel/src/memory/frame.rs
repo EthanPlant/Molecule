@@ -43,6 +43,7 @@ pub enum FrameError {
     HugePageNotSupported,
 }
 
+#[derive(Clone, Copy)]
 /// An representation of a frame.
 pub struct Frame<S: PageSize = PageSize4K> {
     /// The start address of the frame, aligned to the frame size.
@@ -131,6 +132,18 @@ impl LockedFrameAllocator {
     pub fn dealloc(&self, addr: PhysAddr, size: usize) {
         let order = Self::order_from_size(size);
         self.0.lock().deallocate_frame(addr, order);
+    }
+
+    pub fn alloc_zeroed(&self, size: usize) -> Option<PhysAddr> {
+        let addr = self.alloc(size)?;
+        let virt_addr = addr.as_hddm_virt();
+        let slice = virt_addr.as_bytes_mut(size);
+        if slice.is_err() {
+            self.dealloc(addr, size);
+            return None;
+        }
+        slice.unwrap().fill(0);
+        Some(addr)
     }
 
     fn order_from_size(size: usize) -> usize {

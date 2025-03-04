@@ -11,7 +11,7 @@ use super::{
     PageMap,
 };
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub struct AddressSpace {
     cr3: Frame,
 }
@@ -72,5 +72,9 @@ impl AddressSpace {
 
     pub fn page_map(&self) -> PageMap {
         unsafe { PageMap::from_cr3(self.cr3.start_addr()) }
+    }
+
+    pub fn cr3(&self) -> u64 {
+        usize::from(self.cr3.start_addr()) as u64
     }
 }

@@ -37,6 +37,7 @@ mod gdt;
 pub mod interrupts;
 pub mod io;
 pub mod paging;
+pub mod process;
 
 /// Represents the privilege level of the CPU.
 #[derive(Debug, Copy, Clone, PartialEq)]
