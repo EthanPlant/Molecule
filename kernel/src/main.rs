@@ -14,6 +14,7 @@
 
 use core::arch::asm;
 
+use alloc::sync::Arc;
 use arch::interrupts::apic::get_local_apic;
 use drivers::framebuffer::color::Color;
 use drivers::framebuffer::console::{print, println};
@@ -91,17 +92,16 @@ pub fn kmain() -> ! {
     // removed by the linker.
     assert!(BASE_REVISION.is_supported());
 
-    let idle = Process::new_idle();
-    log::debug!("Idle Process: {:?}", idle);
-
-    let kernel_process = Process::new_kernel(kernel_task, true);
-    log::debug!("Kernel Process: {:?}", kernel_process);
+    unsafe {
+        core::arch::asm!("int 0x80");
+    }
 
     hcf();
 }
 
-fn kernel_task() {
-    log::trace!("Hi");
+pub fn kernel_task() {
+    log::trace!("Hi from a process!");
+    hcf();
 }
 
 #[panic_handler]

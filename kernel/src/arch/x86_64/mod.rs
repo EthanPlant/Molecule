@@ -7,7 +7,7 @@ use interrupts::{
     apic::{self, get_local_apic},
     disable_interrupts, enable_interrupts,
     exception::register_exceptions,
-    idt,
+    idt, register_handler,
 };
 use limine::smp::Cpu;
 use paging::{address_space::AddressSpace, page_table::active_level_4_table};
@@ -18,19 +18,15 @@ use crate::{
         rsdp::{self, Rsdp},
         rsdt::{self, Rsdt},
         ACPI_TABLES,
-    },
-    drivers::{
+    }, drivers::{
         self,
         framebuffer::{self, color::Color, console::println, framebuffer},
         uart_16650::serial_println,
-    },
-    hcf, kmain, logger,
-    memory::{
+    }, hcf, kernel_task, kmain, logger, memory::{
         self,
         addr::{VirtAddr, HHDM_OFFSET},
         alloc::init_heap,
-    },
-    HHDM_REQUEST, MEM_MAP_REQUEST, RSDP_REQUEST, SMP_REQUEST,
+    }, process::Process, HHDM_REQUEST, MEM_MAP_REQUEST, RSDP_REQUEST, SMP_REQUEST
 };
 
 mod gdt;
@@ -138,13 +134,7 @@ extern "C" fn x86_64_molecule_main() -> ! {
     log::info!("APIC initialized");
 
     unsafe { enable_interrupts() };
-
-    log::info!("Attempting to switch address space");
-    log::debug!("Current addres space: {:x?}", AddressSpace::this());
-    let address_space = AddressSpace::new().unwrap();
-    address_space.switch();
-    log::debug!("New address space: {:x?}", AddressSpace::this());
-
+    
     log::info!("Arch init done!");
 
     println!("Welcome to ");
@@ -158,6 +148,15 @@ extern "C" fn x86_64_molecule_main() -> ! {
     println!("Version {}", env!("CARGO_PKG_VERSION"));
     println!("CPU Model is {}", cpu_string());
     println!("Total memory: {} MiB", memory::total_memory() / 1024 / 1024);
+
+    interrupts::handler::interrupt_stack!(switch_process, |_stack| {
+        process::arch_switch_process(
+            Process::new_idle().arch_process_mut(),
+            Process::new_kernel(kernel_task, true).arch_process(),
+        );
+    });
+
+    register_handler(0x80, switch_process);
 
     apic::set_bsp_ready();
 

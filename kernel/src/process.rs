@@ -6,8 +6,7 @@ use core::{
 use alloc::sync::Arc;
 
 use crate::{
-    arch::{self, process::ArchProcess},
-    memory::addr::VirtAddr,
+    arch::{self, process::{idle_process, ArchProcess}}, memory::addr::VirtAddr
 };
 
 #[derive(Debug, Clone, Copy)]
@@ -20,7 +19,7 @@ impl ProcessId {
     }
 
     fn allocate() -> Self {
-        static NEXT_PID: AtomicUsize = AtomicUsize::new(1);
+        static NEXT_PID: AtomicUsize = AtomicUsize::new(0);
 
         Self::new(NEXT_PID.fetch_add(1, Ordering::AcqRel))
     }
@@ -31,21 +30,12 @@ pub struct Process {
     pid: ProcessId,
     tid: ProcessId,
 
-    pub arch: UnsafeCell<ArchProcess>,
+    arch: UnsafeCell<ArchProcess>,
 }
 
 impl Process {
     pub fn new_idle() -> Arc<Process> {
-        let pid = ProcessId::allocate();
-
-        let arch = ArchProcess::new_idle();
-
-        Arc::new(Process {
-            pid,
-            tid: pid,
-
-            arch: UnsafeCell::new(arch),
-        })
+        Self::new_kernel(idle_process, true)
     }
 
     pub fn new_kernel(entry_point: fn(), enable_int: bool) -> Arc<Process> {
@@ -59,6 +49,15 @@ impl Process {
 
             arch: UnsafeCell::new(arch),
         })
+    }
+
+    pub fn arch_process(&self) -> &ArchProcess {
+        unsafe { &*self.arch.get() }
+    }
+
+    #[allow(clippy::mut_from_ref)]
+    pub fn arch_process_mut(&self) -> &mut ArchProcess {
+        unsafe { &mut *self.arch.get() }
     }
 }
 
