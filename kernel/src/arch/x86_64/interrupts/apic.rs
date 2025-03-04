@@ -1,4 +1,5 @@
 use core::{
+    arch::asm,
     f64::MAX_EXP,
     ops::{Add, AddAssign},
     ptr,
@@ -17,6 +18,7 @@ use crate::{
     arch::io,
     drivers::framebuffer::console::print,
     memory::addr::{PhysAddr, VirtAddr},
+    scheduler::{scheduler, SCHEDULER},
     sync::{Mutex, MutexGuard},
 };
 
@@ -41,7 +43,7 @@ pub static CPU_COUNT: AtomicUsize = AtomicUsize::new(0);
 pub static LOCAL_APIC: Once<Mutex<LocalApic>> = Once::new();
 static BSP_APIC_ID: AtomicU64 = AtomicU64::new(0);
 
-pub static TICKS: Lazy<Mutex<u64>> = Lazy::new(|| Mutex::new(0));
+pub static TICKS: AtomicU64 = AtomicU64::new(0);
 static TIMER_VEC: AtomicU8 = AtomicU8::new(0);
 
 static BSP_READY: AtomicBool = AtomicBool::new(false);
@@ -85,7 +87,7 @@ impl LocalApic {
         unsafe {
             self.write(APIC_TIMER_DIV, 0x1);
             self.write(APIC_TIMER_INIT, 0xFFFF_FFFF);
-            hpet_sleep(10);
+            hpet_sleep(25);
             self.write(APIC_LVT_TIMER, (1 << 16) | 0xFF);
             let ticks = 0xFFFF_FFFF - self.read(APIC_TIMER_CURRENT);
 
@@ -292,7 +294,5 @@ pub fn init_ap() {
 }
 
 interrupt_stack!(timer_handler, |_stack| {
-    let mut ticks = TICKS.lock();
-    *ticks += 1;
-    get_local_apic().eoi();
+    scheduler().preempt();
 });

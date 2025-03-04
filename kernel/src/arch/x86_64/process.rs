@@ -1,18 +1,24 @@
-use core::{alloc::Layout, arch::{asm, naked_asm}, ptr::Unique};
+use core::{
+    alloc::Layout,
+    arch::{asm, naked_asm},
+    ptr::Unique,
+};
 
 use alloc::alloc::alloc_zeroed;
 
 use crate::{
-    arch::interrupts::handler::{pop_preserved, pop_scratch}, memory::{addr::VirtAddr, frame::FRAME_ALLOCATOR, MapError}
+    arch::interrupts::handler::{pop_preserved, pop_scratch},
+    memory::{addr::VirtAddr, frame::FRAME_ALLOCATOR, MapError},
 };
 
 use super::{
-    gdt::KERNEL_CODE_INDEX, interrupts::handler::{interrupt_stack, InterruptStackFrame},
+    gdt::KERNEL_CODE_INDEX,
+    interrupts::handler::{interrupt_stack, InterruptStackFrame},
     paging::address_space::AddressSpace,
 };
 
 const SWITCH_STACK_SIZE: usize = 4096 * 4;
-const STACK_SIZE: usize = 4096 * 16;
+const STACK_SIZE: usize = 1024 * 4;
 
 #[derive(Default, Debug)]
 #[repr(C)]
@@ -44,7 +50,8 @@ impl ArchProcess {
 
         let process_stack = unsafe {
             let layout = Layout::from_size_align_unchecked(STACK_SIZE, 0x1000);
-            alloc_zeroed(layout).add(layout.size())
+            let addr = alloc_zeroed(layout);
+            addr.add(layout.size())
         };
 
         let addr_space = AddressSpace::this();
@@ -52,8 +59,7 @@ impl ArchProcess {
         let mut stack_ptr = switch_stack as usize;
 
         let kframe = unsafe {
-            stack_ptr -=
-                core::mem::size_of::<InterruptStackFrame>();
+            stack_ptr -= core::mem::size_of::<InterruptStackFrame>();
             &mut *(stack_ptr as *mut InterruptStackFrame)
         };
 
@@ -95,7 +101,8 @@ pub fn arch_switch_process(from: &mut ArchProcess, to: &ArchProcess) {
 
 pub fn idle_process() {
     loop {
-        unsafe { asm!("hlt"); }
+        log::debug!("Idle process");
+        // unsafe { asm!("hlt"); }
     }
 }
 
@@ -126,10 +133,5 @@ unsafe extern "C" fn process_spinup(prev: &mut Unique<Context>, next: &Context) 
 
 #[naked]
 unsafe extern "C" fn iretq_init() {
-    naked_asm!(
-        "cli",
-        pop_preserved!(),
-        pop_scratch!(),
-        "iretq",
-    )
+    naked_asm!("cli", pop_preserved!(), pop_scratch!(), "iretq",)
 }

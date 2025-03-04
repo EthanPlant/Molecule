@@ -15,7 +15,8 @@
 use core::arch::asm;
 
 use alloc::sync::Arc;
-use arch::interrupts::apic::get_local_apic;
+use arch::interrupts::apic::{self, get_local_apic};
+use arch::interrupts::{disable_interrupts, enable_interrupts};
 use drivers::framebuffer::color::Color;
 use drivers::framebuffer::console::{print, println};
 use drivers::framebuffer::{self, framebuffer};
@@ -27,6 +28,7 @@ use limine::BaseRevision;
 use linked_list_allocator::LockedHeap;
 use process::Process;
 use psf::PsfFont;
+use scheduler::scheduler;
 
 extern crate alloc;
 
@@ -37,6 +39,7 @@ mod logger;
 mod memory;
 mod process;
 mod psf;
+mod scheduler;
 mod sync;
 
 /// Sets the base revision to the latest revision supported by the crate.
@@ -92,15 +95,20 @@ pub fn kmain() -> ! {
     // removed by the linker.
     assert!(BASE_REVISION.is_supported());
 
-    unsafe {
-        core::arch::asm!("int 0x80");
-    }
+    scheduler::init();
+    log::info!("Scheduler initialized!");
+    scheduler().register_process(&Process::new_kernel(kernel_task, true));
+
+    unsafe { enable_interrupts() };
+
+    #[cfg(target_arch = "x86_64")]
+    apic::set_bsp_ready();
 
     hcf();
 }
 
 pub fn kernel_task() {
-    log::trace!("Hi from a process!");
+    log::info!("Hi from a process!");
     hcf();
 }
 

@@ -17,6 +17,7 @@ pub const HEAP_SIZE: usize = 8 * 1024 * 1024; // 8 MB should be enough for now
 /// # Error
 /// Returns [`MapError::AllocationFailed`] if we can not allocate the frames required for the heap.
 pub fn init_heap(mapper: &mut impl VirtualMemoryManager) -> Result<(), MapError> {
+    log::debug!("Heap end: {:x}", HEAP_START + HEAP_SIZE);
     let heap_start_page = Page::containing_addr(VirtAddr::new(HEAP_START));
     let heap_end_page = Page::containing_addr(VirtAddr::new(HEAP_START + HEAP_SIZE));
 

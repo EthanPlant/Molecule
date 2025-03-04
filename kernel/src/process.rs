@@ -1,15 +1,20 @@
 use core::{
     cell::UnsafeCell,
+    ops::{Add, Bound, RangeBounds},
     sync::atomic::{AtomicUsize, Ordering},
 };
 
-use alloc::sync::Arc;
+use alloc::{collections::btree_map::Range, sync::Arc};
 
 use crate::{
-    arch::{self, process::{idle_process, ArchProcess}}, memory::addr::VirtAddr
+    arch::{
+        self,
+        process::{idle_process, ArchProcess},
+    },
+    memory::addr::VirtAddr,
 };
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 #[repr(transparent)]
 pub struct ProcessId(usize);
 
@@ -22,6 +27,14 @@ impl ProcessId {
         static NEXT_PID: AtomicUsize = AtomicUsize::new(0);
 
         Self::new(NEXT_PID.fetch_add(1, Ordering::AcqRel))
+    }
+}
+
+impl Add<usize> for ProcessId {
+    type Output = Self;
+
+    fn add(self, rhs: usize) -> Self {
+        Self(self.0 + rhs)
     }
 }
 
@@ -58,6 +71,10 @@ impl Process {
     #[allow(clippy::mut_from_ref)]
     pub fn arch_process_mut(&self) -> &mut ArchProcess {
         unsafe { &mut *self.arch.get() }
+    }
+
+    pub fn pid(&self) -> ProcessId {
+        self.pid
     }
 }
 
