@@ -18,20 +18,15 @@ use crate::{
         rsdp::{self, Rsdp},
         rsdt::{self, Rsdt},
         ACPI_TABLES,
-    },
-    drivers::{
+    }, ap_kmain, drivers::{
         self,
         framebuffer::{self, color::Color, console::println, framebuffer},
         uart_16650::serial_println,
-    },
-    hcf, kernel_task, kmain, logger,
-    memory::{
+    }, hcf, kernel_task, kmain, logger, memory::{
         self,
         addr::{VirtAddr, HHDM_OFFSET},
         alloc::init_heap,
-    },
-    process::Process,
-    HHDM_REQUEST, MEM_MAP_REQUEST, RSDP_REQUEST, SMP_REQUEST,
+    }, process::Process, HHDM_REQUEST, MEM_MAP_REQUEST, RSDP_REQUEST, SMP_REQUEST
 };
 
 mod gdt;
@@ -176,7 +171,7 @@ extern "C" fn ap_main(cpu: &Cpu) -> ! {
 
     log::debug!("AP {} initialized", ap_id);
 
-    kmain();
+    ap_kmain(ap_id);
 }
 
 pub fn cpu_string() -> String {

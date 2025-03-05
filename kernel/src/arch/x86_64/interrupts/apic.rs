@@ -18,7 +18,7 @@ use crate::{
     arch::io,
     drivers::framebuffer::console::print,
     memory::addr::{PhysAddr, VirtAddr},
-    scheduler::{scheduler, SCHEDULER},
+    scheduler::{scheduler},
     sync::{Mutex, MutexGuard},
 };
 
@@ -109,7 +109,7 @@ impl LocalApic {
         }
     }
 
-    fn bsp_id(&self) -> u32 {
+    pub fn bsp_id(&self) -> u32 {
         unsafe { self.read(XAPIC_ID) }
     }
 
@@ -163,7 +163,7 @@ impl From<FeatureInfo> for ApicType {
 }
 
 pub fn get_local_apic() -> MutexGuard<'static, LocalApic> {
-    LOCAL_APIC.get().expect("Lapic is initialized").lock()
+    LOCAL_APIC.get().expect("Lapic is initialized").lock_irq()
 }
 
 pub fn get_cpu_count() -> usize {
@@ -294,5 +294,6 @@ pub fn init_ap() {
 }
 
 interrupt_stack!(timer_handler, |_stack| {
-    scheduler().preempt();
+    get_local_apic().eoi();
+    scheduler().inner.preempt();
 });

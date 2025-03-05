@@ -5,6 +5,7 @@ use core::{
 };
 
 use alloc::{collections::btree_map::Range, sync::Arc};
+use intrusive_collections::{intrusive_adapter, LinkedListLink};
 
 use crate::{
     arch::{
@@ -44,6 +45,8 @@ pub struct Process {
     tid: ProcessId,
 
     arch: UnsafeCell<ArchProcess>,
+
+    pub link: intrusive_collections::LinkedListLink,
 }
 
 impl Process {
@@ -61,6 +64,8 @@ impl Process {
             tid: pid,
 
             arch: UnsafeCell::new(arch),
+
+            link: Default::default(),
         })
     }
 
@@ -79,3 +84,5 @@ impl Process {
 }
 
 unsafe impl Sync for Process {}
+
+intrusive_adapter!(pub SchedProcessAdapter = Arc<Process> : Process {link: LinkedListLink});

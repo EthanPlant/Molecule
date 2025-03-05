@@ -15,7 +15,7 @@
 use core::arch::asm;
 
 use alloc::sync::Arc;
-use arch::interrupts::apic::{self, get_local_apic};
+use arch::interrupts::apic::{self, get_bsp_id, get_local_apic};
 use arch::interrupts::{disable_interrupts, enable_interrupts};
 use drivers::framebuffer::color::Color;
 use drivers::framebuffer::console::{print, println};
@@ -41,6 +41,7 @@ mod process;
 mod psf;
 mod scheduler;
 mod sync;
+mod utils;
 
 /// Sets the base revision to the latest revision supported by the crate.
 /// See specification for further info.
@@ -97,18 +98,23 @@ pub fn kmain() -> ! {
 
     scheduler::init();
     log::info!("Scheduler initialized!");
-    scheduler().register_process(&Process::new_kernel(kernel_task, true));
-
-    unsafe { enable_interrupts() };
+    scheduler().register_process(Process::new_kernel(kernel_task, true));
 
     #[cfg(target_arch = "x86_64")]
     apic::set_bsp_ready();
 
+    unsafe { enable_interrupts() };
+
+    hcf();
+}
+
+pub fn ap_kmain(ap: u32) -> ! {
     hcf();
 }
 
 pub fn kernel_task() {
-    log::info!("Hi from a process!");
+    println!("Hi from main process!");
+    log::debug!("I'm running on CPU {}", get_local_apic().bsp_id() >> 24);
     hcf();
 }
 

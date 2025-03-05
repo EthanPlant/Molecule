@@ -7,7 +7,7 @@ edition = "2021"
 bit_field = "0.10.2"
 bitflags = "2.8.0"
 byteorder = { version = "1.5.0", default-features = false }
-dummy-alloc = "0.1.0"
+intrusive-collections = { version = "0.9.6", features = ["nightly"] }
 limine = "0.3.1"
 linked_list_allocator = "0.10.5"
 log = "0.4.25"

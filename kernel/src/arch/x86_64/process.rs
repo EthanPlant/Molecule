@@ -101,8 +101,7 @@ pub fn arch_switch_process(from: &mut ArchProcess, to: &ArchProcess) {
 
 pub fn idle_process() {
     loop {
-        log::debug!("Idle process");
-        // unsafe { asm!("hlt"); }
+        unsafe { asm!("hlt"); }
     }
 }
 

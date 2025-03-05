@@ -27,10 +27,13 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1fd0f2584146f6f2ef48085050886acf353beff7305ebd1ae69500e27c67f64b"
 
 [[package]]
-name = "dummy-alloc"
-version = "0.1.0"
+name = "intrusive-collections"
+version = "0.9.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "25aa86b60b663473bb4e70264228bac9127644c8d4822bb8d01f1123d1799e1b"
+checksum = "189d0897e4cbe8c75efedf3502c18c887b05046e59d28404d4d8e46cbc4d1e86"
+dependencies = [
+ "memoffset",
+]
 
 [[package]]
 name = "limine"
@@ -67,13 +70,22 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "04cbf5b083de1c7e0222a7a51dbfdba1cbe1c6ab0b15e29fff3f6c077fd9cd9f"
 
 [[package]]
+name = "memoffset"
+version = "0.9.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "488016bfae457b036d996092f6cb448677611ce4449e970ceaf42695203f218a"
+dependencies = [
+ "autocfg",
+]
+
+[[package]]
 name = "molecule"
 version = "0.1.0"
 dependencies = [
  "bit_field",
  "bitflags",
  "byteorder",
- "dummy-alloc",
+ "intrusive-collections",
  "limine",
  "linked_list_allocator",
  "log",
