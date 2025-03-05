@@ -1,18 +1,13 @@
-use core::{
-    arch::asm,
-    fmt::Debug,
-    ops::{Index, IndexMut},
-};
+use core::arch::asm;
+use core::fmt::Debug;
+use core::ops::{Index, IndexMut};
 
 use bitflags::bitflags;
 
-use crate::memory::{
-    addr::PhysAddr,
-    frame::{Frame, FrameError},
-    PageSize, PageSize4K,
-};
-
 use super::PageMap;
+use crate::memory::addr::PhysAddr;
+use crate::memory::frame::{Frame, FrameError};
+use crate::memory::{PageSize, PageSize4K};
 
 bitflags! {
     #[derive(Debug, Copy, Clone)]
@@ -101,7 +96,6 @@ pub struct PageTable {
     entries: [PageTableEntry; ENTRY_COUNT],
 }
 
-#[allow(dead_code)]
 impl PageTable {
     pub fn zero(&mut self) {
         for entry in &mut self.entries {

@@ -1,8 +1,8 @@
 /// Type alias for a function pointer to an interrupt handler
 ///
-/// Interrupt handlers **should not** be created by hand, as an interrupt cannot be handled solely by a normal Rust function b
-/// ecause interrupts have their own distinct calling convention. The easiest way to construct a valid handler function is via
-/// the [`interrupt_stack`] macro.
+/// Interrupt handlers **should not** be created by hand, as an interrupt cannot be handled solely
+/// by a normal Rust function b ecause interrupts have their own distinct calling convention. The
+/// easiest way to construct a valid handler function is via the [`interrupt_stack`] macro.
 pub type HandlerFunc = unsafe extern "C" fn();
 
 #[repr(C)]
@@ -74,7 +74,8 @@ impl IretRegisters {
 
 /// Represents the stack frame pushed by the CPU during an interrupt.
 ///
-/// This contains the state of all registers at the time of the interrupt, so that we can preserve them and restore them when the interrupt handler is done.
+/// This contains the state of all registers at the time of the interrupt, so that we can preserve
+/// them and restore them when the interrupt handler is done.
 #[repr(C)]
 pub struct InterruptStackFrame {
     pub scratch: ScratchRegisters,
@@ -147,8 +148,9 @@ pub macro pop_preserved() {
 /// Generate an interrupt handler with access to the stack frame.
 ///
 /// This macro accepts a name, an identifier for the stack frame, and a block of code to execute.
-/// The macro produces a naked function which calls the provided block of code with the stack frame as an argument.
-/// This enables the inner line of code to access the stack frame and the CPU registers at the time of the interrupt.
+/// The macro produces a naked function which calls the provided block of code with the stack frame
+/// as an argument. This enables the inner line of code to access the stack frame and the CPU
+/// registers at the time of the interrupt.
 ///
 /// # Example
 /// ```
@@ -184,8 +186,9 @@ pub macro interrupt_stack($name:ident, |$stack:ident| $code:block) {
 
 /// Generate an interrupt handler with access to the stack frame and an error code.
 ///
-/// This macro operates nearly identical to [`interrupt_stack`], but also provides an error code to the inner block of code.
-/// This is mostly used for certain exceptions which provide an additional error code.
+/// This macro operates nearly identical to [`interrupt_stack`], but also provides an error code to
+/// the inner block of code. This is mostly used for certain exceptions which provide an additional
+/// error code.
 ///
 /// # Example
 /// ```

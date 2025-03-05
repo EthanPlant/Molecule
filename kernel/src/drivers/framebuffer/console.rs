@@ -1,11 +1,13 @@
+use alloc::fmt;
 use core::fmt::Write;
 
-use alloc::fmt;
 use spin::Lazy;
 
-use crate::{drivers::uart_16650::serial_println, psf::PsfFont, sync::Mutex};
-
-use super::{color::Color, framebuffer, FRAMEBUFFER};
+use super::color::Color;
+use super::{framebuffer, FRAMEBUFFER};
+use crate::drivers::uart_16650::serial_println;
+use crate::psf::PsfFont;
+use crate::sync::Mutex;
 
 pub static CONSOLE: Lazy<Mutex<Console>> = Lazy::new(|| Mutex::new(Console::default()));
 

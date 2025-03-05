@@ -1,15 +1,11 @@
-use core::{arch::asm, ptr::addr_of};
-
-use crate::{
-    arch::{
-        x86_64::gdt::{SegmentSelector, KERNEL_CODE_INDEX},
-        PrivilegeLevel,
-    },
-    memory::addr::VirtAddr,
-    sync::Mutex,
-};
+use core::arch::asm;
+use core::ptr::addr_of;
 
 use super::handler::HandlerFunc;
+use crate::arch::x86_64::gdt::{SegmentSelector, KERNEL_CODE_INDEX};
+use crate::arch::PrivilegeLevel;
+use crate::memory::addr::VirtAddr;
+use crate::sync::Mutex;
 
 const IDT_ENTRIES: usize = 256;
 
@@ -32,18 +28,20 @@ impl Idt {
     }
 }
 
-/// The Interrupt Descriptor Table (IDT) descriptor. This structure will get loaded into the CPU through the `lidt` instruction.
-/// to tell the CPU where the IDT is located in memory.
+/// The Interrupt Descriptor Table (IDT) descriptor. This structure will get loaded into the CPU
+/// through the `lidt` instruction. to tell the CPU where the IDT is located in memory.
 #[derive(Debug)]
 #[repr(C, packed)]
 struct IdtDescriptor {
     /// The size of the IDT in bytes minus 1.
     ///
-    /// In theory this should always be 4095 bytes. As the IDT typically contains 256 entries, each 16 bytes in size.
-    /// If more than 256 entries are present, they will be ignored by the CPU. While an IDT with less than 256 entries is valid,
-    /// any attempt to access an invalid entry will result in a General Protection Fault.
+    /// In theory this should always be 4095 bytes. As the IDT typically contains 256 entries, each
+    /// 16 bytes in size. If more than 256 entries are present, they will be ignored by the
+    /// CPU. While an IDT with less than 256 entries is valid, any attempt to access an invalid
+    /// entry will result in a General Protection Fault.
     size: u16,
-    /// The address of the IDT in memory. This should be a pointer to the beginning of an array of [`IdtEntries`](IdtEntry).
+    /// The address of the IDT in memory. This should be a pointer to the beginning of an array of
+    /// [`IdtEntries`](IdtEntry).
     offset: u64,
 }
 
@@ -54,14 +52,18 @@ impl IdtDescriptor {
     }
 }
 
-/// Represents the type of interrupt that occurs. This data will be stored in an [IdtEntry](IdtEntry) to describe the type of interrupt.
+/// Represents the type of interrupt that occurs. This data will be stored in an
+/// [IdtEntry](IdtEntry) to describe the type of interrupt.
 ///
-/// Almost all of the time, an interrupt will have the `Interrupt` variant as its type. Only use the `Trap` variant if absolutely required.
+/// Almost all of the time, an interrupt will have the `Interrupt` variant as its type. Only use the
+/// `Trap` variant if absolutely required.
 #[derive(Debug)]
 enum GateType {
-    /// An interrupt gate, entries with this type will disable interrupts while the handler is running.
+    /// An interrupt gate, entries with this type will disable interrupts while the handler is
+    /// running.
     Interrupt = 0x0E,
-    /// A trap gate, entries with this type will not disable interrupts while the handler is running.
+    /// A trap gate, entries with this type will not disable interrupts while the handler is
+    /// running.
     Trap = 0x0F,
 }
 
@@ -75,15 +77,16 @@ impl From<u8> for GateType {
     }
 }
 
-/// The attributes of an IDT entry. This structure contains information about the privilege levels allowed to call this interrupt via the `INT` instruction,
-/// and the [`GateType`] of the entry.
+/// The attributes of an IDT entry. This structure contains information about the privilege levels
+/// allowed to call this interrupt via the `INT` instruction, and the [`GateType`] of the entry.
 #[repr(transparent)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 struct IdtEntryAttributes(u8);
 
 #[allow(dead_code)]
 impl IdtEntryAttributes {
-    /// Create a new IDT entry attributes structure with the corresponding [`PrivilegeLevel`] and [`GateType`].
+    /// Create a new IDT entry attributes structure with the corresponding [`PrivilegeLevel`] and
+    /// [`GateType`].
     const fn new(privilege: PrivilegeLevel, gate_type: GateType) -> Self {
         IdtEntryAttributes(1 << 7 | (privilege as u8) << 5 | gate_type as u8)
     }
@@ -115,7 +118,8 @@ pub struct IdtEntry {
     offset_low: u16,
     /// The segment selector that the CPU will load when the interrupt handler is called.
     selector: SegmentSelector,
-    /// The Interrupt Stack Table index to use for this interrupt. This field is currently unused and should be set to 0.
+    /// The Interrupt Stack Table index to use for this interrupt. This field is currently unused
+    /// and should be set to 0.
     ist: u8,
     /// The attributes of the IDT entry
     attributes: IdtEntryAttributes,
@@ -129,11 +133,13 @@ pub struct IdtEntry {
 
 impl IdtEntry {
     /// An empty IDT entry used as a placeholder.
-    /// This entry has a null function pointer, a kernel code segment selector, and default attributes.
-    /// Any attempt to call this entry will result in a Page Fault, as the function pointer is set to 0.
+    /// This entry has a null function pointer, a kernel code segment selector, and default
+    /// attributes. Any attempt to call this entry will result in a Page Fault, as the function
+    /// pointer is set to 0.
     pub const EMPTY: Self = {
-        // Safety: Segment selector and attributes are valid, we're using 0 as a placeholder function offset.
-        // While this will lead to a Page Fault Exception if this interrupt is ever called, it is guaranteed to be well-defined behvaiour.
+        // Safety: Segment selector and attributes are valid, we're using 0 as a placeholder
+        // function offset. While this will lead to a Page Fault Exception if this interrupt
+        // is ever called, it is guaranteed to be well-defined behvaiour.
         unsafe {
             Self::new(
                 0,
@@ -146,7 +152,8 @@ impl IdtEntry {
     /// Create a new IDT entry, with a given offset, segment selector, and attributes.
     ///
     /// # Safety
-    /// `offset` **must** point to a valid interrupt [handler function](HandlerFunc) to avoid unedefined behaviour.
+    /// `offset` **must** point to a valid interrupt [handler function](HandlerFunc) to avoid
+    /// unedefined behaviour.
     const unsafe fn new(
         offset: usize,
         selector: SegmentSelector,
@@ -166,7 +173,8 @@ impl IdtEntry {
     /// Set the function pointer of the IDT entry to a given function.
     ///
     /// # Safety
-    /// This function must be a valid interrupt [handler](HandlerFunc), and cannot be any generic function.
+    /// This function must be a valid interrupt [handler](HandlerFunc), and cannot be any generic
+    /// function.
     pub unsafe fn set_func(&mut self, func: HandlerFunc) {
         let func_ptr = func as usize;
 

@@ -1,8 +1,8 @@
+use alloc::fmt;
 use core::marker::PhantomData;
 
-use alloc::fmt;
-
-use super::{addr::VirtAddr, PageSize, PageSize4K};
+use super::addr::VirtAddr;
+use super::{PageSize, PageSize4K};
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Page<S: PageSize = PageSize4K> {

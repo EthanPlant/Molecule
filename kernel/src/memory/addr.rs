@@ -56,7 +56,8 @@ impl VirtAddr {
         Ok(unsafe { *self.as_ptr() })
     }
 
-    /// Reads `sizeof(T)` bytes from the virtual address, and returns a mutable reference to the value.
+    /// Reads `sizeof(T)` bytes from the virtual address, and returns a mutable reference to the
+    /// value.
     ///
     /// # Errors
     /// - Returns [`AddrError::NullPointer`] if the address is null.

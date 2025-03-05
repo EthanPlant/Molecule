@@ -1,28 +1,22 @@
-use core::{
-    arch::asm,
-    f64::MAX_EXP,
-    ops::{Add, AddAssign},
-    ptr,
-    sync::atomic::{AtomicBool, AtomicU64, AtomicU8, AtomicUsize, Ordering},
-};
+use core::arch::asm;
+use core::f64::MAX_EXP;
+use core::ops::{Add, AddAssign};
+use core::ptr;
+use core::sync::atomic::{AtomicBool, AtomicU64, AtomicU8, AtomicUsize, Ordering};
 
 use raw_cpuid::{CpuId, FeatureInfo};
 use spin::{Lazy, Once};
 
-use crate::{
-    acpi::{
-        hpet::hpet_sleep,
-        madt::{MadtEntry, IO_APICS, REDIRECTS},
-        ACPI_TABLES,
-    },
-    arch::io,
-    drivers::framebuffer::console::print,
-    memory::addr::{PhysAddr, VirtAddr},
-    scheduler::{scheduler},
-    sync::{Mutex, MutexGuard},
-};
-
-use super::{allocate_vector, disable_pic, handler::interrupt_stack, register_handler};
+use super::handler::interrupt_stack;
+use super::{allocate_vector, disable_pic, register_handler};
+use crate::acpi::hpet::hpet_sleep;
+use crate::acpi::madt::{MadtEntry, IO_APICS, REDIRECTS};
+use crate::acpi::ACPI_TABLES;
+use crate::arch::io;
+use crate::drivers::framebuffer::console::print;
+use crate::memory::addr::{PhysAddr, VirtAddr};
+use crate::scheduler::scheduler;
+use crate::sync::{Mutex, MutexGuard};
 
 const SPURIOUS_VECTOR: u32 = 0xFF;
 

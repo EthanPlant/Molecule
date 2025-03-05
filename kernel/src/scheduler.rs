@@ -1,11 +1,15 @@
+use alloc::collections::btree_map::BTreeMap;
+use alloc::sync::Arc;
 use core::arch;
 
-use alloc::{collections::{btree_map::BTreeMap}, sync::Arc};
 use intrusive_collections::LinkedList;
 use spin::Once;
 
-use crate::{arch::{interrupts::apic::get_local_apic, process::{self, arch_switch_process}}, process::{Process, ProcessId, SchedProcessAdapter}, sync::{IrqGuard, Mutex}, utils::PerCpu};
-use crate::utils::Downcastable;
+use crate::arch::interrupts::apic::get_local_apic;
+use crate::arch::process::{self, arch_switch_process};
+use crate::process::{Process, ProcessId, SchedProcessAdapter};
+use crate::sync::{IrqGuard, Mutex};
+use crate::utils::{Downcastable, PerCpu};
 
 struct ProcessList(Mutex<BTreeMap<ProcessId, Arc<Process>>>);
 
@@ -53,7 +57,8 @@ impl Scheduler {
 
     pub fn register_process(&self, process: Arc<Process>) {
         log::debug!("Registering process with PID {:?}", process.pid());
-        self.processes.register_process(process.pid(), process.clone());
+        self.processes
+            .register_process(process.pid(), process.clone());
         self.inner.register_process(process);
     }
 
@@ -129,7 +134,11 @@ impl RoundRobin {
 
 impl SchedulerInterface for RoundRobin {
     fn register_process(&self, process: Arc<Process>) {
-        log::debug!("Registering process {:?} on CPU {}", process.pid(), get_local_apic().bsp_id() >> 24);
+        log::debug!(
+            "Registering process {:?} on CPU {}",
+            process.pid(),
+            get_local_apic().bsp_id() >> 24
+        );
         let queue = self.queue.get_mut();
         queue.push_process(process);
     }
@@ -158,7 +167,9 @@ unsafe impl Send for RoundRobin {}
 unsafe impl Sync for RoundRobin {}
 
 pub fn scheduler() -> &'static Scheduler {
-    SCHEDULER.get().expect("Attempted to get the scheduler before it was initialized")
+    SCHEDULER
+        .get()
+        .expect("Attempted to get the scheduler before it was initialized")
 }
 
 pub fn current_process() -> Option<Arc<Process>> {

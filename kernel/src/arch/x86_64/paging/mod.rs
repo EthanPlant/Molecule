@@ -2,12 +2,10 @@ use core::arch::asm;
 
 use page_table::{PageTable, PageTableFlags};
 
-use crate::memory::{
-    addr::{PhysAddr, VirtAddr},
-    frame::{Frame, FrameAllocator, FrameError, FRAME_ALLOCATOR},
-    page::Page,
-    MapError, UnmapError, VirtualMemoryManager,
-};
+use crate::memory::addr::{PhysAddr, VirtAddr};
+use crate::memory::frame::{Frame, FrameAllocator, FrameError, FRAME_ALLOCATOR};
+use crate::memory::page::Page;
+use crate::memory::{MapError, UnmapError, VirtualMemoryManager};
 
 pub mod address_space;
 pub mod page_table;

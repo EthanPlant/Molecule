@@ -1,17 +1,13 @@
-//! A bootstrap allocator used to initialize the memory management system until the heap can be initialized.
-//! This is a simple first-free-fit allocator with no ability to deallocate memory.
+//! A bootstrap allocator used to initialize the memory management system until the heap can be
+//! initialized. This is a simple first-free-fit allocator with no ability to deallocate memory.
 
-use core::{
-    alloc::{AllocError, Allocator, Layout},
-    ptr::NonNull,
-};
+use core::alloc::{AllocError, Allocator, Layout};
+use core::ptr::NonNull;
 
-use crate::{
-    memory::{PageSize, PageSize4K},
-    sync::Mutex,
-};
-
-use super::{addr::align_up, memmap::MemoryRegion};
+use super::addr::align_up;
+use super::memmap::MemoryRegion;
+use crate::memory::{PageSize, PageSize4K};
+use crate::sync::Mutex;
 
 pub struct BootstrapAlloc {
     /// Free areas of memory that the allocator is allowed to use.
@@ -62,7 +58,7 @@ unsafe impl Allocator for BootstrapAllocRef {
     fn allocate(&self, layout: Layout) -> Result<NonNull<[u8]>, AllocError> {
         let inner = self.get_inner();
 
-        let aligned_size = align_up(layout.size() as _, layout.align() as _);
+        let aligned_size = align_up(layout.size(), layout.align());
         let ptr = inner.allocate(aligned_size);
 
         let ptr = unsafe { NonNull::new_unchecked(ptr) };

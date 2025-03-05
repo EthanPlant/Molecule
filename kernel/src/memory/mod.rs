@@ -27,7 +27,6 @@ impl PageSize for PageSize4K {
 }
 
 #[derive(Debug)]
-#[allow(dead_code)]
 pub enum MapError {
     /// Failed to allocate space for a page-frame mapping
     AllocationFailed,
@@ -43,9 +42,9 @@ pub enum UnmapError {
 }
 
 /// A trait for common virtual memory operations.
-#[allow(dead_code)]
 pub trait VirtualMemoryManager {
-    /// Translate a single virtual address to a physical address. Returns `None` if the virtual address is unmapped.
+    /// Translate a single virtual address to a physical address. Returns `None` if the virtual
+    /// address is unmapped.
     fn translate_addr(&self, addr: VirtAddr) -> Option<PhysAddr>;
     /// Translate a page to a physical frame.
     ///

@@ -1,23 +1,21 @@
 //! Physical frame management.
 
-use core::{alloc::Allocator, marker::PhantomData};
+use alloc::fmt;
+use alloc::vec::Vec;
+use core::alloc::Allocator;
+use core::marker::PhantomData;
 
-use alloc::{fmt, vec::Vec};
 use bit_field::BitField;
 use limine::memory_map::EntryType;
 
-use crate::{
-    memory::{
-        addr::align_up,
-        bootstrap::BootstrapAlloc,
-        memmap::{MemoryRegionIter, MemoryRegionType},
-    },
-    sync::Mutex,
-};
-
-use super::{
-    addr::PhysAddr, bootstrap::BootstrapAllocRef, memmap::MemoryRegion, PageSize, PageSize4K,
-};
+use super::addr::PhysAddr;
+use super::bootstrap::BootstrapAllocRef;
+use super::memmap::MemoryRegion;
+use super::{PageSize, PageSize4K};
+use crate::memory::addr::align_up;
+use crate::memory::bootstrap::BootstrapAlloc;
+use crate::memory::memmap::{MemoryRegionIter, MemoryRegionType};
+use crate::sync::Mutex;
 
 /// The global frame allocator.
 pub static FRAME_ALLOCATOR: LockedFrameAllocator = LockedFrameAllocator::new();
@@ -76,10 +74,11 @@ impl<S: PageSize> fmt::Debug for Frame<S> {
 }
 
 /// # Safety
-/// The implementer must ensure that `allocate_frame` returns a unique unused frame. Failure to do so can
-/// result in undefined behaviour.
+/// The implementer must ensure that `allocate_frame` returns a unique unused frame. Failure to do
+/// so can result in undefined behaviour.
 pub unsafe trait FrameAllocator {
-    /// Allocate a 4 KiB frame of physical memory. Returns the allocated Frame or `None` if no free frames are available.
+    /// Allocate a 4 KiB frame of physical memory. Returns the allocated Frame or `None` if no free
+    /// frames are available.
     fn allocate_frame(&self) -> Option<Frame<PageSize4K>>;
     #[allow(dead_code)]
     /// Deallocate the given frame of physical memory.
@@ -122,7 +121,8 @@ impl LockedFrameAllocator {
         *allocator = BuddyFrameAllocator::new(mem_map);
     }
 
-    /// Allocate `size` bytes in physical memory. Returns `None` if there isn't enough available space.
+    /// Allocate `size` bytes in physical memory. Returns `None` if there isn't enough available
+    /// space.
     pub fn alloc(&self, size: usize) -> Option<PhysAddr> {
         let order = Self::order_from_size(size);
         self.0.lock().allocate_frame(order)

@@ -1,8 +1,7 @@
 use spin::Once;
 
-use crate::memory::addr::{PhysAddr, VirtAddr};
-
 use super::{SdtHeader, SdtSignature};
+use crate::memory::addr::{PhysAddr, VirtAddr};
 
 pub const HPET_SIG: SdtSignature = SdtSignature(*b"HPET");
 

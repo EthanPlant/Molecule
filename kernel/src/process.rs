@@ -1,19 +1,14 @@
-use core::{
-    cell::UnsafeCell,
-    ops::{Add, Bound, RangeBounds},
-    sync::atomic::{AtomicUsize, Ordering},
-};
+use alloc::collections::btree_map::Range;
+use alloc::sync::Arc;
+use core::cell::UnsafeCell;
+use core::ops::{Add, Bound, RangeBounds};
+use core::sync::atomic::{AtomicUsize, Ordering};
 
-use alloc::{collections::btree_map::Range, sync::Arc};
 use intrusive_collections::{intrusive_adapter, LinkedListLink};
 
-use crate::{
-    arch::{
-        self,
-        process::{idle_process, ArchProcess},
-    },
-    memory::addr::VirtAddr,
-};
+use crate::arch::process::{idle_process, ArchProcess};
+use crate::arch::{self};
+use crate::memory::addr::VirtAddr;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 #[repr(transparent)]

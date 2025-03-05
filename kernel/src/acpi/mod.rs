@@ -1,16 +1,15 @@
-use core::{
-    fmt::{self, Debug},
-    str,
-};
-
 use alloc::fmt::format;
+use core::fmt::{self, Debug};
+use core::str;
+
 use hpet::{HpetTable, HPET_SIG};
 use madt::{Madt, MADT_SIG};
 use rsdp::{find_rsdt_addr, Rsdp};
 use rsdt::Rsdt;
 use spin::Lazy;
 
-use crate::{memory::addr::VirtAddr, RSDP_REQUEST};
+use crate::memory::addr::VirtAddr;
+use crate::RSDP_REQUEST;
 
 pub mod hpet;
 pub mod madt;

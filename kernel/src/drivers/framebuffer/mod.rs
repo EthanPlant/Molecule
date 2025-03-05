@@ -1,18 +1,13 @@
-use core::{
-    ptr,
-    sync::atomic::{AtomicPtr, Ordering},
-};
+use core::ptr;
+use core::sync::atomic::{AtomicPtr, Ordering};
 
 use color::Color;
 use spin::Once;
 
-use crate::{
-    drivers::uart_16650::serial_println,
-    logger,
-    psf::PsfFont,
-    sync::{Mutex, MutexGuard},
-    FRAMEBUFFER_REQUEST,
-};
+use crate::drivers::uart_16650::serial_println;
+use crate::psf::PsfFont;
+use crate::sync::{Mutex, MutexGuard};
+use crate::{logger, FRAMEBUFFER_REQUEST};
 
 pub mod color;
 pub mod console;

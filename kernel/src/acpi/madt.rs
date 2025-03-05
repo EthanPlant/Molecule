@@ -1,11 +1,10 @@
+use alloc::vec::Vec;
 use core::mem;
 
-use alloc::vec::Vec;
 use spin::RwLock;
 
-use crate::memory::addr::{PhysAddr, VirtAddr};
-
 use super::{SdtHeader, SdtSignature};
+use crate::memory::addr::{PhysAddr, VirtAddr};
 
 pub const MADT_SIG: SdtSignature = SdtSignature(*b"APIC");
 

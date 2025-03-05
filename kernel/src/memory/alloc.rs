@@ -1,13 +1,11 @@
 //! Heap allocation
 
-use crate::{arch::paging::page_table::PageTableFlags, GLOBAL_ALLOC};
-
-use super::{
-    addr::VirtAddr,
-    frame::{FrameAllocator, FRAME_ALLOCATOR},
-    page::Page,
-    MapError, PageSize, PageSize4K, VirtualMemoryManager,
-};
+use super::addr::VirtAddr;
+use super::frame::{FrameAllocator, FRAME_ALLOCATOR};
+use super::page::Page;
+use super::{MapError, PageSize, PageSize4K, VirtualMemoryManager};
+use crate::arch::paging::page_table::PageTableFlags;
+use crate::GLOBAL_ALLOC;
 
 pub const HEAP_START: usize = 0xFFFF_FE80_0000_0000;
 pub const HEAP_SIZE: usize = 8 * 1024 * 1024; // 8 MB should be enough for now
@@ -34,7 +32,8 @@ pub fn init_heap(mapper: &mut impl VirtualMemoryManager) -> Result<(), MapError>
         page = Page::containing_addr(page.start_addr() + PageSize4K::SIZE);
     }
 
-    // Safety: This function is only called once, and the heap memory is reserved and will not be used by anything else.
+    // Safety: This function is only called once, and the heap memory is reserved and will not be
+    // used by anything else.
     unsafe {
         GLOBAL_ALLOC.lock().init(HEAP_START as *mut u8, HEAP_SIZE);
     }

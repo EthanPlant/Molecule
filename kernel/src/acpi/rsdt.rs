@@ -1,12 +1,9 @@
-use crate::memory::addr::VirtAddr;
-
+use alloc::borrow::ToOwned;
+use alloc::vec::Vec;
 use core::mem;
 
-use alloc::{borrow::ToOwned, vec::Vec};
-
-use crate::memory::addr::PhysAddr;
-
 use super::{SdtHeader, SdtSignature};
+use crate::memory::addr::{PhysAddr, VirtAddr};
 
 const XSDT_SIG: SdtSignature = SdtSignature(*b"XSDT");
 const RSDT_SIG: SdtSignature = SdtSignature(*b"RSDT");

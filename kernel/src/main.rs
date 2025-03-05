@@ -3,18 +3,20 @@
 #![feature(allocator_api)]
 #![feature(strict_provenance_atomic_ptr)]
 #![feature(ptr_internals)]
+
 #![no_std]
 #![no_main]
-#![warn(clippy::pedantic)]
-#![warn(missing_docs)]
-#![allow(clippy::cast_possible_truncation)]
-#![allow(clippy::cast_lossless)]
+
+#![deny(trivial_numeric_casts, unused_allocation)]
+#![warn(clippy::needless_pass_by_value)]
+#![warn(clippy::ptr_as_ptr)]
+#![allow(internal_features)]
 
 //! The Molecule kernel.
 
+use alloc::sync::Arc;
 use core::arch::asm;
 
-use alloc::sync::Arc;
 use arch::interrupts::apic::{self, get_bsp_id, get_local_apic};
 use arch::interrupts::{disable_interrupts, enable_interrupts};
 use drivers::framebuffer::color::Color;
@@ -57,22 +59,18 @@ static FRAMEBUFFER_REQUEST: FramebufferRequest = FramebufferRequest::new();
 
 #[used]
 #[link_section = ".requests"]
-#[allow(missing_docs)]
 pub static HHDM_REQUEST: HhdmRequest = HhdmRequest::new();
 
 #[used]
 #[link_section = ".requests"]
-#[allow(missing_docs)]
 pub static mut MEM_MAP_REQUEST: MemoryMapRequest = MemoryMapRequest::new();
 
 #[used]
 #[link_section = ".requests"]
-#[allow(missing_docs)]
 pub static RSDP_REQUEST: RsdpRequest = RsdpRequest::new();
 
 #[used]
 #[link_section = ".requests"]
-#[allow(missing_docs)]
 pub static mut SMP_REQUEST: SmpRequest = SmpRequest::new();
 
 /// Define the stand and end markers for Limine requests.
@@ -84,7 +82,6 @@ static _START_MARKER: RequestsStartMarker = RequestsStartMarker::new();
 static _END_MARKER: RequestsEndMarker = RequestsEndMarker::new();
 
 #[global_allocator]
-#[allow(missing_docs)]
 pub static GLOBAL_ALLOC: LockedHeap = LockedHeap::empty();
 
 pub static mut TICKS: usize = 0;

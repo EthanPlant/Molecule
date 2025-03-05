@@ -1,10 +1,8 @@
+use alloc::fmt;
 use core::{mem, str};
 
-use alloc::fmt;
-
-use crate::memory::addr::{PhysAddr, VirtAddr};
-
 use super::rsdt::RsdtAddr;
+use crate::memory::addr::{PhysAddr, VirtAddr};
 
 const RSDP_SIGNATURE: [u8; 8] = *b"RSD PTR ";
 

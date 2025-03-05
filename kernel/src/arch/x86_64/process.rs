@@ -1,21 +1,15 @@
-use core::{
-    alloc::Layout,
-    arch::{asm, naked_asm},
-    ptr::Unique,
-};
-
 use alloc::alloc::alloc_zeroed;
+use core::alloc::Layout;
+use core::arch::{asm, naked_asm};
+use core::ptr::Unique;
 
-use crate::{
-    arch::interrupts::handler::{pop_preserved, pop_scratch},
-    memory::{addr::VirtAddr, frame::FRAME_ALLOCATOR, MapError},
-};
-
-use super::{
-    gdt::KERNEL_CODE_INDEX,
-    interrupts::handler::{interrupt_stack, InterruptStackFrame},
-    paging::address_space::AddressSpace,
-};
+use super::gdt::KERNEL_CODE_INDEX;
+use super::interrupts::handler::{interrupt_stack, InterruptStackFrame};
+use super::paging::address_space::AddressSpace;
+use crate::arch::interrupts::handler::{pop_preserved, pop_scratch};
+use crate::memory::addr::VirtAddr;
+use crate::memory::frame::FRAME_ALLOCATOR;
+use crate::memory::MapError;
 
 const SWITCH_STACK_SIZE: usize = 4096 * 4;
 const STACK_SIZE: usize = 1024 * 4;
@@ -101,7 +95,9 @@ pub fn arch_switch_process(from: &mut ArchProcess, to: &ArchProcess) {
 
 pub fn idle_process() {
     loop {
-        unsafe { asm!("hlt"); }
+        unsafe {
+            asm!("hlt");
+        }
     }
 }
 

@@ -1,10 +1,14 @@
-use core::{alloc::Layout, any::Any, cell::UnsafeCell, mem, ptr::Unique};
-
-use alloc::{alloc::alloc_zeroed, sync::Arc};
+use alloc::alloc::alloc_zeroed;
+use alloc::sync::Arc;
+use core::alloc::Layout;
+use core::any::Any;
+use core::cell::UnsafeCell;
+use core::mem;
+use core::ptr::Unique;
 
 #[cfg(target_arch = "x86_64")]
 use crate::arch::interrupts::apic::get_cpu_count;
-#[cfg(target_arch="x86_64")]
+#[cfg(target_arch = "x86_64")]
 fn get_cpu_id() -> u32 {
     use crate::arch::interrupts::apic::get_local_apic;
 
@@ -26,7 +30,7 @@ impl<T> PerCpu<T> {
         let cpu_count = get_cpu_count();
         let size = mem::size_of::<T>() * cpu_count;
 
-        let raw = unsafe { alloc_zeroed(Layout::from_size_align_unchecked(size, 8)).cast::<T>()};
+        let raw = unsafe { alloc_zeroed(Layout::from_size_align_unchecked(size, 8)).cast::<T>() };
 
         unsafe {
             for i in 0..cpu_count {

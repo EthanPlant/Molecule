@@ -6,14 +6,11 @@ use apic::{get_local_apic, ioapic_setup_irq, LocalApic, LOCAL_APIC};
 use handler::{interrupt_stack, HandlerFunc};
 use idt::{IdtEntry, IDT};
 
-use crate::{
-    arch::io::{inb, outb},
-    drivers::framebuffer::console::print,
-    sync::Mutex,
-    TICKS,
-};
-
 use super::io;
+use crate::arch::io::{inb, outb};
+use crate::drivers::framebuffer::console::print;
+use crate::sync::Mutex;
+use crate::TICKS;
 
 pub mod apic;
 pub mod exception;

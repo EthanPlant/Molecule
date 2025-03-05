@@ -1,32 +1,31 @@
 //! Architecture specific code for ``x86_64``.
 
+use alloc::format;
+use alloc::string::String;
 use core::sync::atomic::Ordering;
 
-use alloc::{format, string::String};
-use interrupts::{
-    apic::{self, get_local_apic},
-    disable_interrupts, enable_interrupts,
-    exception::register_exceptions,
-    idt, register_handler,
-};
+use interrupts::apic::{self, get_local_apic};
+use interrupts::exception::register_exceptions;
+use interrupts::{disable_interrupts, enable_interrupts, idt, register_handler};
 use limine::smp::Cpu;
-use paging::{address_space::AddressSpace, page_table::active_level_4_table};
+use paging::address_space::AddressSpace;
+use paging::page_table::active_level_4_table;
 
+use crate::acpi::rsdp::{self, Rsdp};
+use crate::acpi::rsdt::{self, Rsdt};
+use crate::acpi::{hpet, ACPI_TABLES};
+use crate::drivers::framebuffer::color::Color;
+use crate::drivers::framebuffer::console::println;
+use crate::drivers::framebuffer::{self, framebuffer};
+use crate::drivers::uart_16650::serial_println;
+use crate::drivers::{self};
+use crate::memory::addr::{VirtAddr, HHDM_OFFSET};
+use crate::memory::alloc::init_heap;
+use crate::memory::{self};
+use crate::process::Process;
 use crate::{
-    acpi::{
-        hpet,
-        rsdp::{self, Rsdp},
-        rsdt::{self, Rsdt},
-        ACPI_TABLES,
-    }, ap_kmain, drivers::{
-        self,
-        framebuffer::{self, color::Color, console::println, framebuffer},
-        uart_16650::serial_println,
-    }, hcf, kernel_task, kmain, logger, memory::{
-        self,
-        addr::{VirtAddr, HHDM_OFFSET},
-        alloc::init_heap,
-    }, process::Process, HHDM_REQUEST, MEM_MAP_REQUEST, RSDP_REQUEST, SMP_REQUEST
+    ap_kmain, hcf, kernel_task, kmain, logger, HHDM_REQUEST, MEM_MAP_REQUEST, RSDP_REQUEST,
+    SMP_REQUEST,
 };
 
 mod gdt;
@@ -57,8 +56,8 @@ impl From<u8> for PrivilegeLevel {
 
 /// Performs any ``x86_64`` specific initialization.
 ///
-/// This function is called during the kernel initialization process to perform any architecture specific initialization.
-/// Specifically, this function performs the following:
+/// This function is called during the kernel initialization process to perform any architecture
+/// specific initialization. Specifically, this function performs the following:
 /// 1. Initializes the [UART driver](drivers::uart_16650) for serial logging.
 /// 2. Initializes the [GDT](gdt) (Global Descriptor Table).
 /// 3. Initializes the [IDT](idt) (Interrupt Descriptor Table).

@@ -1,0 +1,12 @@
+edition = "2021"
+newline_style = "Unix"
+
+comment_width = 100
+wrap_comments = true
+normalize_comments = true
+format_code_in_doc_comments = true
+
+imports_granularity = "Module"
+group_imports = "StdExternalCrate"
+
+reorder_impl_items = true

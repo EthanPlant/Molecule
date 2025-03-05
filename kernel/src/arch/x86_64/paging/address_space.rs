@@ -1,15 +1,11 @@
-use core::{arch::asm, ops::Add};
+use core::arch::asm;
+use core::ops::Add;
 
-use crate::memory::{
-    addr::PhysAddr,
-    frame::{Frame, FrameAllocator, FRAME_ALLOCATOR},
-    MapError,
-};
-
-use super::{
-    page_table::{self, active_level_4_table, PageTable},
-    PageMap,
-};
+use super::page_table::{self, active_level_4_table, PageTable};
+use super::PageMap;
+use crate::memory::addr::PhysAddr;
+use crate::memory::frame::{Frame, FrameAllocator, FRAME_ALLOCATOR};
+use crate::memory::MapError;
 
 #[derive(Debug, Clone, Copy)]
 pub struct AddressSpace {

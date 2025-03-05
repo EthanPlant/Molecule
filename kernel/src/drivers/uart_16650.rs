@@ -3,7 +3,8 @@ use core::fmt::{self, Write};
 use bitflags::bitflags;
 use spin::Once;
 
-use crate::{arch::io, sync::Mutex};
+use crate::arch::io;
+use crate::sync::Mutex;
 
 pub static COM_1: Once<Mutex<SerialPort>> = Once::new();
 
@@ -75,8 +76,8 @@ impl SerialPort {
 
     #[allow(dead_code)]
     pub fn read_byte(&mut self) -> u8 {
-        // Safety: The serial port is guaranteed to be initialized by the time this method is called,
-        // and the status is checked to ensure data is ready to be read.
+        // Safety: The serial port is guaranteed to be initialized by the time this method is
+        // called, and the status is checked to ensure data is ready to be read.
         self.wait_for_status(LineStatus::DATA_READY);
         unsafe { io::inb(self.0) }
     }
