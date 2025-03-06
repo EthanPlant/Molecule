@@ -1,102 +1,142 @@
+//! High Precision Event Timer (HPET)
+
 use spin::Once;
 
-use super::{SdtHeader, SdtSignature};
+use super::{GenericAddress, SdtHeader, SdtSignature};
+use crate::acpi::GENERIC_ADDR_IN_MEM;
 use crate::memory::addr::{PhysAddr, VirtAddr};
 
-pub const HPET_SIG: SdtSignature = SdtSignature(*b"HPET");
-
+/// Global HPET
 static HPET: Once<Hpet> = Once::new();
 
-const HPET_GENERAL_CAP_REG: u32 = 0x0;
+pub(super) const HPET_SIG: SdtSignature = *b"HPET";
+
+const HPET_GENERAL_CAP_REG: u32 = 0x00;
+const HPET_GENERAL_CONFIG_REG: u32 = 0x10;
+const HPET_MAIN_COUNTER_REG: u32 = 0xF0;
+
+const HPET_ENABLE: u64 = 0x0;
+
 const HPET_COUNTER_CLK_PERIOD: u64 = 32;
 
-const HPET_GENERAL_CONFIG: u32 = 0x10;
-const HPET_ENABLE_CNF: u64 = 0;
+const MS_IN_FS: u64 = 1_000_000_000_000;
 
-const HPET_MAIN_COUNTER: u32 = 0xF0;
-
-#[derive(Debug, Clone, Copy)]
+/// The HPET ACPI Table.
 #[repr(C, packed)]
-struct HpetAddr {
-    addr_space_width: u8,
-    register_bit_width: u8,
-    register_bit_offset: u8,
-    reserved: u8,
-    address: u64,
-}
-
-#[derive(Debug, Clone, Copy)]
-#[repr(C, packed)]
-pub struct HpetTable {
-    header: SdtHeader,
-    hardware_rev_id: u8,
-    comparator_desc: u8,
-    pci_vendor_id: u16,
-    address: HpetAddr,
-    hpet_number: u8,
-    minimum_tick: u16,
-    oem_attributes: u8,
+pub(super) struct HpetTable {
+    _header: SdtHeader,
+    _hardware_rev_id: u8,
+    _comparator_desc: u8,
+    _pci_vendor_id: u16,
+    address: GenericAddress,
+    _hpet_numer: u8,
+    _minimum_tick: u16,
+    _oem_attributes: u8,
 }
 
 impl HpetTable {
-    pub fn new(addr: VirtAddr) -> Self {
-        unsafe { *(usize::from(addr) as *const HpetTable) }
+    /// Get the HPET ACPI table present at this address.
+    ///
+    /// # Safety
+    /// `addr` must be a valid pointer to an HPET ACPI table.
+    pub unsafe fn new(addr: VirtAddr) -> &'static HpetTable {
+        &*addr.as_ptr::<HpetTable>()
     }
 }
 
-#[derive(Debug)]
-pub struct Hpet {
+/// In memory representation of an HPET.
+struct Hpet {
     base: VirtAddr,
     freq: u64,
 }
 
 impl Hpet {
+    /// Initialize an HPET from an ACPI table.
+    ///
+    /// # Panics
+    /// This function will panic in either of the following scenarios:
+    /// - The HPET table uses an addressing mode besides system memory
+    /// - The HPET's frequency is faster than the maximum of 100 ns.
     pub fn init(table: &HpetTable) -> Self {
         assert!(
-            table.address.addr_space_width == 0,
-            "Unsupported HPET address space"
+            table.address.addr_space_id == GENERIC_ADDR_IN_MEM,
+            "ACPI: Unsupported HPET address space"
         );
-        let mut hpet = Self {
+
+        let mut this = Self {
             base: PhysAddr::new(table.address.address as usize).as_hddm_virt(),
             freq: 0,
         };
 
-        let freq = unsafe { hpet.read_reg(HPET_GENERAL_CAP_REG) } >> HPET_COUNTER_CLK_PERIOD;
-        assert!(freq <= 0x05F5_E100, "HPET frequency too high");
-        hpet.freq = freq;
+        // Retrieve the HPET's frequency
+        // Safety: base is initialized from the ACPI table and guaranteed to be valid. The General
+        // Capability Register is a valid register to read from
+        let freq = unsafe { this.read(HPET_GENERAL_CAP_REG) } >> HPET_COUNTER_CLK_PERIOD;
+        assert!(
+            freq <= 0x05f5_e100,
+            "ACPI: HPET frequency higher than 100 ns"
+        );
+        this.freq = freq;
 
+        log::debug!(
+            "ACPI: HPET(base = {:x?} freq = {} ns)",
+            this.base,
+            this.freq
+        );
+
+        // Send initialization instructions to the HPET
+        // Safety: base is initialized from the ACPI table and guaranteed to be valid. All registers
+        // written to are valid HPET registers to write to
         unsafe {
-            hpet.write_reg(HPET_GENERAL_CONFIG, 0 << HPET_ENABLE_CNF);
-            hpet.write_reg(HPET_MAIN_COUNTER, 0);
-            hpet.write_reg(HPET_GENERAL_CONFIG, 1 << HPET_ENABLE_CNF);
+            this.write(HPET_GENERAL_CONFIG_REG, 0 << HPET_ENABLE); // Disable the HPET
+            this.write(HPET_MAIN_COUNTER_REG, 0); // Clear the counter
+            this.write(HPET_GENERAL_CONFIG_REG, 1 << HPET_ENABLE); // Reenable the HPET
         }
 
-        hpet
+        this
     }
 
+    /// Sleep for `ms` milliseconds.
     fn sleep(&self, ms: u64) {
-        let target =
-            unsafe { self.read_reg(HPET_MAIN_COUNTER) } + (ms * 1_000_000_000_000) / self.freq;
-        while unsafe { self.read_reg(HPET_MAIN_COUNTER) } < target {
-            core::hint::spin_loop();
+        // Safety: We're only reading from the main counter
+        unsafe {
+            let target = self.read(HPET_MAIN_COUNTER_REG) + (ms * MS_IN_FS) / self.freq;
+            while self.read(HPET_MAIN_COUNTER_REG) < target {
+                core::hint::spin_loop();
+            }
         }
     }
 
-    unsafe fn read_reg(&self, reg: u32) -> u64 {
-        let ptr = (usize::from(self.base) + reg as usize) as *const u64;
+    /// Read from an HPET register
+    ///
+    /// # Safety
+    /// `reg` must be a valid HPET register
+    unsafe fn read(&self, reg: u32) -> u64 {
+        let ptr = self.base.as_ptr::<u64>().byte_offset(reg as isize);
         core::ptr::read_volatile(ptr)
     }
 
-    unsafe fn write_reg(&self, reg: u32, val: u64) {
-        let ptr = (usize::from(self.base) + reg as usize) as *mut u64;
-        core::ptr::write_volatile(ptr, val);
+    /// Write to an HPET register
+    ///
+    /// # Safety
+    /// `reg` must be a valid HPET register
+    unsafe fn write(&self, reg: u32, data: u64) {
+        let ptr = self.base.as_mut_ptr::<u64>().byte_offset(reg as isize);
+        core::ptr::write_volatile(ptr, data);
     }
 }
 
-pub fn init_hpet(table: &HpetTable) {
-    HPET.call_once(|| Hpet::init(table));
+/// Sleep for `ms` milliseconds using the global HPET
+pub fn sleep(ms: u64) {
+    HPET.get()
+        .expect("Attempted to sleep with the HPET before it was initialized")
+        .sleep(ms);
 }
 
-pub fn hpet_sleep(ms: u64) {
-    HPET.get().expect("HPET is initialized").sleep(ms);
+/// Initialize the global HPET from the HPET ACPI table.
+///
+/// # Panics
+/// This function will panic if the global HPET has already been initialized.
+pub(super) fn init(table: &HpetTable) {
+    HPET.call_once(|| Hpet::init(table));
 }

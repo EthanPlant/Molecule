@@ -3,13 +3,12 @@
 #![feature(allocator_api)]
 #![feature(strict_provenance_atomic_ptr)]
 #![feature(ptr_internals)]
-
 #![no_std]
 #![no_main]
-
 #![deny(trivial_numeric_casts, unused_allocation)]
 #![warn(clippy::needless_pass_by_value)]
 #![warn(clippy::ptr_as_ptr)]
+#![warn(missing_copy_implementations)]
 #![allow(internal_features)]
 
 //! The Molecule kernel.

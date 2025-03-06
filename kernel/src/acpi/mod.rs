@@ -1,78 +1,23 @@
-use alloc::fmt::format;
-use core::fmt::{self, Debug};
-use core::str;
+//! # ACPI Interface
+//!
+//! This module contains the interface used to provide access to the Advanced Configuration and
+//! Power Interface (ACPI) data structures.
 
 use hpet::{HpetTable, HPET_SIG};
-use madt::{Madt, MADT_SIG};
-use rsdp::{find_rsdt_addr, Rsdp};
-use rsdt::Rsdt;
-use spin::Lazy;
-
-use crate::memory::addr::VirtAddr;
-use crate::RSDP_REQUEST;
+use madt::{Madt, MADT, MADT_SIG};
+use rsdt::{Rsdt, RsdtAddr, RsdtType};
 
 pub mod hpet;
 pub mod madt;
-pub mod rsdp;
-pub mod rsdt;
+mod rsdp;
+mod rsdt;
 
-pub static ACPI_TABLES: Lazy<AcpiTables> = Lazy::new(|| {
-    init(
-        RSDP_REQUEST
-            .get_response()
-            .expect("RSDP response returned from Limine"),
-    )
-});
+type SdtSignature = [u8; 4];
 
-#[derive(Debug)]
-pub struct AcpiTables {
-    rsdt: Rsdt,
-    madt: Madt,
-    hpet: HpetTable,
-}
-
-impl AcpiTables {
-    pub fn rsdt(&self) -> &Rsdt {
-        &self.rsdt
-    }
-
-    pub fn madt(&self) -> &Madt {
-        &self.madt
-    }
-
-    pub fn hpet(&self) -> &HpetTable {
-        &self.hpet
-    }
-}
-
-pub fn init(resp: &limine::response::RsdpResponse) -> AcpiTables {
-    let addr = VirtAddr::new(resp.address() as usize);
-    let rsdt_addr = find_rsdt_addr(addr);
-    log::debug!("RSDT found at {:x?}", rsdt_addr);
-    let rsdt = Rsdt::new(rsdt_addr);
-
-    let madt_entry = rsdt.find_table(MADT_SIG).expect("MADT is present");
-    let madt = Madt::new(madt_entry.addr());
-
-    let hpet = HpetTable::new(rsdt.find_table(HPET_SIG).expect("HPET is present").addr());
-
-    AcpiTables { rsdt, madt, hpet }
-}
-
-#[repr(transparent)]
-#[derive(Clone, Copy, PartialEq, Eq)]
-struct SdtSignature([u8; 4]);
-
-impl fmt::Debug for SdtSignature {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_fmt(format_args!("{}", unsafe {
-            &str::from_utf8_unchecked(&self.0)
-        }))
-    }
-}
-
-#[derive(Clone, Copy)]
+/// Header data present in all ACPI tables. This header data contains metadata about the table
+/// itself.
 #[repr(C, packed)]
+#[derive(Clone)]
 struct SdtHeader {
     signature: SdtSignature,
     length: u32,
@@ -85,55 +30,50 @@ struct SdtHeader {
     creator_revision: u32,
 }
 
-impl SdtHeader {
-    pub fn parse(addr: VirtAddr, signature: SdtSignature) -> Option<Self> {
-        let header = unsafe { &*(usize::from(addr) as *const SdtHeader) };
-        if header.signature == signature && header.validate_checksum() {
-            return Some(*header);
-        }
+const GENERIC_ADDR_IN_MEM: u8 = 0;
 
-        None
-    }
-
-    pub fn parse_from_addr(addr: VirtAddr) -> Self {
-        let header = unsafe { &*(usize::from(addr) as *const SdtHeader) };
-        if header.validate_checksum() {
-            return *header;
-        }
-
-        unreachable!()
-    }
-
-    fn validate_checksum(&self) -> bool {
-        let bytes = unsafe {
-            core::slice::from_raw_parts(
-                core::ptr::from_ref::<SdtHeader>(self).cast::<u8>(),
-                self.length as usize,
-            )
-        };
-        let sum = bytes.iter().fold(0u8, |sum, &byte| sum.wrapping_add(byte));
-        sum == 0
-    }
+/// Generic Address Structure: Describes register addresses within ACPI tables.
+#[repr(C, packed)]
+struct GenericAddress {
+    addr_space_id: u8,
+    register_bit_width: u8,
+    register_bit_offset: u8,
+    access_size: u8,
+    address: u64,
 }
 
-impl fmt::Debug for SdtHeader {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let mut f = f.debug_struct("SdtHeader");
-        let length = self.length;
-        let oem_revision = self.oem_revision;
-        let creator_id = self.creator_id;
-        let creator_revision = self.creator_revision;
-        f.field("signature", &self.signature);
-        f.field("length", &length);
-        f.field("revision", &self.revision);
-        f.field("checksum", &self.checksum);
-        f.field("oem_id", unsafe { &str::from_utf8_unchecked(&self.oem_id) });
-        f.field("oem_table_id", unsafe {
-            &str::from_utf8_unchecked(&self.oem_table_id)
-        });
-        f.field("oem_revision", &oem_revision);
-        f.field("creator_id", &creator_id);
-        f.field("creator_revision", &creator_revision);
-        f.finish()
+/// Initialize the ACPI tables from a [RsdpResponse](limine::response::RsdpResponse)
+pub fn init(resp: &limine::response::RsdpResponse) {
+    log::info!("ACPI: Beginning initialization");
+    match rsdp::find_rsdt_addr(resp) {
+        RsdtAddr::Xsdt(xsdt_addr) => {
+            log::debug!("ACPI: XSDT found at {:x?}", xsdt_addr);
+            // Safety: The XSDT address from a V2 RSDP is guaranteed to be valid
+            let xsdt = unsafe { Rsdt::<u64>::new(xsdt_addr) };
+            init_inner(&xsdt);
+        }
+        RsdtAddr::Rsdt(rsdt_addr) => {
+            log::debug!("ACPI: RSDT found at {:x?}", rsdt_addr);
+            // Safety: The RSDT address from a V1 RSDP is guaranteed to be valid
+            let rsdt = unsafe { Rsdt::<u32>::new(rsdt_addr) };
+            init_inner(&rsdt);
+        }
+    }
+    log::info!("ACPI: Initialization finished")
+}
+
+fn init_inner<T: RsdtType>(rsdt: &Rsdt<T>) {
+    if let Some(madt_entry) = rsdt.find_table(MADT_SIG) {
+        log::debug!("ACPI: MADT found at {:x?}", madt_entry.addr());
+        // Safety: MADT address came from the RSDT, and must be valid
+        MADT.call_once(|| unsafe { Madt::new(madt_entry.addr()) });
+    } else {
+        log::warn!("ACPI: No MADT found in RSDT")
+    }
+
+    if let Some(hpet_entry) = rsdt.find_table(HPET_SIG) {
+        log::debug!("ACPI: HPET found at {:x?}", hpet_entry.addr());
+        // Safety: HPET address came from the RSDT, and must be valid
+        hpet::init(unsafe { HpetTable::new(hpet_entry.addr()) });
     }
 }

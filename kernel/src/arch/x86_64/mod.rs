@@ -11,9 +11,7 @@ use limine::smp::Cpu;
 use paging::address_space::AddressSpace;
 use paging::page_table::active_level_4_table;
 
-use crate::acpi::rsdp::{self, Rsdp};
-use crate::acpi::rsdt::{self, Rsdt};
-use crate::acpi::{hpet, ACPI_TABLES};
+use crate::acpi::{self, hpet};
 use crate::drivers::framebuffer::color::Color;
 use crate::drivers::framebuffer::console::println;
 use crate::drivers::framebuffer::{self, framebuffer};
@@ -127,7 +125,11 @@ extern "C" fn x86_64_molecule_main() -> ! {
     framebuffer().clear_screen(Color::BLACK);
     log::info!("Framebuffer console initialized, all further messages will be displayed");
 
-    hpet::init_hpet(ACPI_TABLES.hpet());
+    acpi::init(
+        RSDP_REQUEST
+            .get_response()
+            .expect("Failed to retrieve RSDP response"),
+    );
 
     apic::init();
     log::info!("APIC initialized");

@@ -9,9 +9,8 @@ use spin::{Lazy, Once};
 
 use super::handler::interrupt_stack;
 use super::{allocate_vector, disable_pic, register_handler};
-use crate::acpi::hpet::hpet_sleep;
-use crate::acpi::madt::{MadtEntry, IO_APICS, REDIRECTS};
-use crate::acpi::ACPI_TABLES;
+use crate::acpi::hpet;
+use crate::acpi::madt::{MadtEntry, IO_APICS, OVERRIDES};
 use crate::arch::io;
 use crate::drivers::framebuffer::console::print;
 use crate::memory::addr::{PhysAddr, VirtAddr};
@@ -81,7 +80,7 @@ impl LocalApic {
         unsafe {
             self.write(APIC_TIMER_DIV, 0x1);
             self.write(APIC_TIMER_INIT, 0xFFFF_FFFF);
-            hpet_sleep(25);
+            hpet::sleep(25);
             self.write(APIC_LVT_TIMER, (1 << 16) | 0xFF);
             let ticks = 0xFFFF_FFFF - self.read(APIC_TIMER_CURRENT);
 
@@ -202,9 +201,9 @@ fn ioapic_from_redirect(gsi: u32) -> Option<usize> {
     let ioapics = IO_APICS.read();
 
     for (i, entry) in ioapics.iter().enumerate() {
-        let max_redirect = entry.interrupt_base() + ioapic_max_redirect(i) > gsi;
+        let max_redirect = entry.gsi_base() + ioapic_max_redirect(i) > gsi;
 
-        if entry.interrupt_base() <= gsi || max_redirect {
+        if entry.gsi_base() <= gsi || max_redirect {
             return Some(i);
         }
     }
@@ -214,29 +213,29 @@ fn ioapic_from_redirect(gsi: u32) -> Option<usize> {
 
 fn ioapic_set_redirect(vec: u8, gsi: u32, flags: u16, status: i32) {
     if let Some(ioapic) = ioapic_from_redirect(gsi) {
-        let mut redirect = 0;
+        let mut redirect: u64 = 0;
 
         if (flags & (1 << 1)) != 0 {
-            redirect |= (1 << 13) as u8;
+            redirect |= 1 << 13;
         }
 
         if (flags & (1 << 3)) != 0 {
-            redirect |= (1 << 15) as u8;
+            redirect |= 1 << 15;
         }
 
         if status == 1 {
-            redirect |= (1 << 16) as u8;
+            redirect |= 1 << 16;
         }
 
-        redirect |= vec;
-        redirect |= (0usize << 56) as u8; // TODO: Properly set destination mode
+        redirect |= vec as u64;
+        redirect |= (0usize << 56) as u64; // TODO: Properly set destination mode
 
         let entry = IO_APICS.read()[ioapic];
-        let ioredtbl = (gsi - entry.interrupt_base()) * 2 + 16;
+        let ioredtbl = (gsi - entry.gsi_base()) * 2 + 16;
 
         unsafe {
             ioapic_write(ioapic, ioredtbl, redirect as _);
-            ioapic_write(ioapic, ioredtbl + 1, (redirect as u64 >> 32) as _);
+            ioapic_write(ioapic, ioredtbl + 1, (redirect >> 32) as _);
         }
         log::debug!("Registered redirect (vec={vec}, gsi={gsi})");
     } else {
@@ -245,11 +244,11 @@ fn ioapic_set_redirect(vec: u8, gsi: u32, flags: u16, status: i32) {
 }
 
 pub fn ioapic_setup_irq(irq: u8, vec: u8, status: i32) {
-    let overrides = REDIRECTS.read();
+    let overrides = OVERRIDES.read();
 
     for entry in overrides.iter() {
         if entry.irq() == irq {
-            ioapic_set_redirect(vec, entry.system_int(), entry.flags(), status);
+            ioapic_set_redirect(vec, entry.gsi(), entry.flags(), status);
             return;
         }
     }
