@@ -102,6 +102,11 @@ pub unsafe fn inl(port: u16) -> u32 {
     value
 }
 
+/// Read from a Model-specific register (MSR)
+/// 
+/// # Safety
+/// 
+/// The caller must ensure this is a valid MSR
 pub unsafe fn rdmsr(msr: u32) -> u64 {
     let (high, low): (u32, u32);
 
@@ -110,6 +115,11 @@ pub unsafe fn rdmsr(msr: u32) -> u64 {
     ((high as u64) << 32) | (low as u64)
 }
 
+/// Wrtite to a Model-specific register (MSR)
+/// 
+/// # Safety
+/// 
+/// The caller must ensure this is a valid MSR
 pub unsafe fn wrmsr(msr: u32, value: u64) {
     let low = value as u32;
     let high = (value >> 32) as u32;

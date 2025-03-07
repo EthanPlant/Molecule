@@ -3,6 +3,7 @@
 #![feature(allocator_api)]
 #![feature(strict_provenance_atomic_ptr)]
 #![feature(ptr_internals)]
+#![feature(abi_x86_interrupt)]
 #![no_std]
 #![no_main]
 #![deny(trivial_numeric_casts, unused_allocation)]
@@ -88,18 +89,18 @@ pub static mut TICKS: usize = 0;
 pub fn kmain() -> ! {
     log::info!("Starting Molecule {}", env!("CARGO_PKG_VERSION"));
 
-    // All limine requests must also be referenced in a called function, otherwise they may be
-    // removed by the linker.
-    assert!(BASE_REVISION.is_supported());
+    // // All limine requests must also be referenced in a called function, otherwise they may be
+    // // removed by the linker.
+    // assert!(BASE_REVISION.is_supported());
 
-    scheduler::init();
-    log::info!("Scheduler initialized!");
-    scheduler().register_process(Process::new_kernel(kernel_task, true));
+    // scheduler::init();
+    // log::info!("Scheduler initialized!");
+    // scheduler().register_process(Process::new_kernel(kernel_task, true));
 
-    #[cfg(target_arch = "x86_64")]
-    apic::set_bsp_ready();
+    // #[cfg(target_arch = "x86_64")]
+    // apic::set_bsp_ready();
 
-    unsafe { enable_interrupts() };
+    // unsafe { enable_interrupts() };
 
     hcf();
 }

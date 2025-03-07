@@ -1,6 +1,5 @@
 //! Root/Extended System Descriptor Table (R/XSDT)
 
-use alloc::borrow::ToOwned;
 use alloc::vec::Vec;
 use core::marker::PhantomData;
 use core::mem;
