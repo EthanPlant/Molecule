@@ -152,7 +152,7 @@ pub struct IoApic {
 impl IoApic {
     /// Retrieve the address of this IO/APIC.
     pub fn addr(&self) -> VirtAddr {
-        PhysAddr::new(self.ioapic_addr as usize).as_hddm_virt()
+        PhysAddr::new(self.ioapic_addr as usize).as_hhdm_virt()
     }
 
     /// Retrieve this IO/APIC's GSI base.

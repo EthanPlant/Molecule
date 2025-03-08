@@ -3,13 +3,16 @@
 mod exception;
 pub(super) mod idt;
 
-use core::{arch::asm, fmt, ops::Deref};
+use core::arch::asm;
+use core::fmt;
+use core::ops::Deref;
 
 /// Wrapper around the interrupt stack frame pushed by the CPU.
-/// 
+///
 /// This type derefs to an [InterruptStackFrameInner] to enable reading the actual values.
-/// 
-/// This wrapper ensures that no accidental modification of the stack frame occurs, which can caused undefined behaviour (see [as_mut](InterruptStackFrame::as_mut) for more information).
+///
+/// This wrapper ensures that no accidental modification of the stack frame occurs, which can caused
+/// undefined behaviour (see [as_mut](InterruptStackFrame::as_mut) for more information).
 #[repr(C)]
 struct InterruptStackFrame {
     inner: InterruptStackFrameInner,
@@ -17,11 +20,14 @@ struct InterruptStackFrame {
 
 impl InterruptStackFrame {
     /// Gives mutable access to the contents of the framebuffer
-    /// 
+    ///
     /// # Safety
-    /// Modifying the content of the stack frame can easily lead to undefined behaviour. For example, by writing to the `rip` field, the CPU can jump to any arbitrary location at the end of the interrupt.
-    /// 
-    /// As such, great care should be taken when using this function to ensure all modifications to the stack frame are sound.
+    /// Modifying the content of the stack frame can easily lead to undefined behaviour. For
+    /// example, by writing to the `rip` field, the CPU can jump to any arbitrary location at the
+    /// end of the interrupt.
+    ///
+    /// As such, great care should be taken when using this function to ensure all modifications to
+    /// the stack frame are sound.
     pub unsafe fn as_mut(&mut self) -> &mut InterruptStackFrameInner {
         &mut self.inner
     }
@@ -71,7 +77,7 @@ impl fmt::Debug for InterruptStackFrameInner {
 
 /// Wrapper around `cli` to disable hardware interrupts.
 pub fn disable_interrupts() {
-    unsafe {asm!("cli", options(nomem, nostack))};
+    unsafe { asm!("cli", options(nomem, nostack)) };
 }
 
 /// Wrapper around `sti` to enable hardware interrupts.
@@ -79,4 +85,14 @@ pub fn enable_interrupts() {
     unsafe {
         asm!("sti", options(nomem, nostack));
     }
+}
+
+/// Check if interrupts are enabbled
+pub fn are_interrupts_enabled() -> bool {
+    let flags = unsafe {
+        let flags: u64;
+        asm!("pushf; pop {}", out(reg) flags, options(nomem, preserves_flags));
+        flags
+    };
+    flags & (1 << 9) != 0
 }

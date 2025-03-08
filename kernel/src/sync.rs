@@ -1,31 +1,5 @@
 use crate::arch::interrupts;
 
-pub struct IrqGuard {
-    locked: bool,
-}
-
-impl IrqGuard {
-    pub fn new() -> Self {
-        let locked = interrupts::are_interrupts_enabled();
-
-        unsafe {
-            interrupts::disable_interrupts();
-        }
-
-        Self { locked }
-    }
-}
-
-impl Drop for IrqGuard {
-    fn drop(&mut self) {
-        if self.locked {
-            unsafe {
-                interrupts::enable_interrupts();
-            }
-        }
-    }
-}
-
 pub struct MutexGuard<'a, T: ?Sized + 'a> {
     guard: core::mem::ManuallyDrop<spin::MutexGuard<'a, T>>,
     irq_lock: bool,

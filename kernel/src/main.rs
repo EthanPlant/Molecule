@@ -17,8 +17,6 @@
 use alloc::sync::Arc;
 use core::arch::asm;
 
-use arch::interrupts::apic::{self, get_bsp_id, get_local_apic};
-use arch::interrupts::{disable_interrupts, enable_interrupts};
 use drivers::framebuffer::color::Color;
 use drivers::framebuffer::console::{print, println};
 use drivers::framebuffer::{self, framebuffer};
@@ -28,9 +26,7 @@ use limine::request::{
 };
 use limine::BaseRevision;
 use linked_list_allocator::LockedHeap;
-use process::Process;
 use psf::PsfFont;
-use scheduler::scheduler;
 
 extern crate alloc;
 
@@ -106,12 +102,6 @@ pub fn kmain() -> ! {
 }
 
 pub fn ap_kmain(ap: u32) -> ! {
-    hcf();
-}
-
-pub fn kernel_task() {
-    println!("Hi from main process!");
-    log::debug!("I'm running on CPU {}", get_local_apic().bsp_id() >> 24);
     hcf();
 }
 

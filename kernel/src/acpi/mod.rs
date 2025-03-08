@@ -64,7 +64,7 @@ pub fn init(resp: &limine::response::RsdpResponse) {
 
 fn init_inner<T: RsdtType>(rsdt: &Rsdt<T>) {
     if let Some(madt_entry) = rsdt.find_table(MADT_SIG) {
-        log::debug!("ACPI: MADT found at {:x?}", madt_entry.addr());
+        log::debug!("ACPI: MADT found at {:x}", madt_entry.addr());
         // Safety: MADT address came from the RSDT, and must be valid
         MADT.call_once(|| unsafe { Madt::new(madt_entry.addr()) });
     } else {
@@ -72,7 +72,7 @@ fn init_inner<T: RsdtType>(rsdt: &Rsdt<T>) {
     }
 
     if let Some(hpet_entry) = rsdt.find_table(HPET_SIG) {
-        log::debug!("ACPI: HPET found at {:x?}", hpet_entry.addr());
+        log::debug!("ACPI: HPET found at {:x}", hpet_entry.addr());
         // Safety: HPET address came from the RSDT, and must be valid
         hpet::init(unsafe { HpetTable::new(hpet_entry.addr()) });
     }

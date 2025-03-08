@@ -67,7 +67,7 @@ impl Rsdt<u32> {
 
         for i in 0..entries {
             let table_addr = core::ptr::read_unaligned(addr.as_ptr::<u32>().add(i));
-            let addr = PhysAddr::new(table_addr as usize).as_hddm_virt();
+            let addr = PhysAddr::new(table_addr as usize).as_hhdm_virt();
             let sdt_header = &*addr.as_ptr::<SdtHeader>();
             tables.push(RsdtEntry {
                 signature: sdt_header.signature,
@@ -107,7 +107,7 @@ impl Rsdt<u64> {
 
         for i in 0..entries {
             let table_addr = core::ptr::read_unaligned(addr.as_ptr::<u64>().add(i));
-            let addr = PhysAddr::new(table_addr as usize).as_hddm_virt();
+            let addr = PhysAddr::new(table_addr as usize).as_hhdm_virt();
             let sdt_header = &*addr.as_ptr::<SdtHeader>();
             tables.push(RsdtEntry {
                 signature: sdt_header.signature,

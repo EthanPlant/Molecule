@@ -1,10 +1,10 @@
 //! # x86_64
-//! 
-//! This module contains all architecture specific code for the x86_64 (AMD64) ISA. 
+//!
+//! This module contains all architecture specific code for the x86_64 (AMD64) ISA.
 
 mod gdt;
 mod init;
-mod interrupts;
+pub mod interrupts;
 pub mod io;
 mod paging;
 

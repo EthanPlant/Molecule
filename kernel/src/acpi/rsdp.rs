@@ -42,8 +42,8 @@ pub(super) fn find_rsdt_addr(resp: &limine::response::RsdpResponse) -> RsdtAddr 
     if is_v2 {
         // Safety: Since we know the RSDP is a V2 RSDP, dereferencing the remaining bytes is valid.
         let rsdp = unsafe { &*addr.as_ptr::<RsdpV2>() };
-        RsdtAddr::Xsdt(PhysAddr::new(rsdp.xsdt_addr as usize).as_hddm_virt())
+        RsdtAddr::Xsdt(PhysAddr::new(rsdp.xsdt_addr as usize).as_hhdm_virt())
     } else {
-        RsdtAddr::Rsdt(PhysAddr::new(rsdp.rsdt_addr as usize).as_hddm_virt())
+        RsdtAddr::Rsdt(PhysAddr::new(rsdp.rsdt_addr as usize).as_hhdm_virt())
     }
 }

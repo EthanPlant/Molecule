@@ -1,12 +1,15 @@
 //! Interrupt Descriptor Table (IDT)
 
-use core::{arch::asm, mem, ptr::addr_of};
+use core::arch::asm;
+use core::mem;
+use core::ptr::addr_of;
 
 use spin::RwLock;
 
-use crate::arch::x86_64::{gdt::{SegmentSelector, GDT_KERNEL_CODE}, interrupts::exception::register_exceptions, PrivilegeLevel};
-
 use super::InterruptStackFrame;
+use crate::arch::x86_64::gdt::{SegmentSelector, GDT_KERNEL_CODE};
+use crate::arch::x86_64::interrupts::exception::register_exceptions;
+use crate::arch::x86_64::PrivilegeLevel;
 
 const IDT_ENTRIES: usize = 256;
 
@@ -16,7 +19,8 @@ pub static IDT: RwLock<Idt> = RwLock::new(Idt::new());
 type Handler = extern "x86-interrupt" fn(_: InterruptStackFrame);
 type HandlerWithErrorCode = extern "x86-interrupt" fn(_: InterruptStackFrame, _: u64);
 
-/// The Interrupt Descriptor table is a list of 256 [IdtEntry], each pointing to a handler function to run when an interrupt occurs.
+/// The Interrupt Descriptor table is a list of 256 [IdtEntry], each pointing to a handler function
+/// to run when an interrupt occurs.
 pub struct Idt {
     entries: [IdtEntry; IDT_ENTRIES],
 }
@@ -70,7 +74,8 @@ impl IdtEntryAttributes {
         IdtEntryAttributes(IDT_ENTRY_PRESENT | (privilege as u8) << 5 | gate_type as u8)
     }
 
-    /// Construct a set of default values, with a [PrivilegeLevel::Kernel] and [GateType::Interrupt].
+    /// Construct a set of default values, with a [PrivilegeLevel::Kernel] and
+    /// [GateType::Interrupt].
     const fn default() -> Self {
         Self::new(PrivilegeLevel::Kernel, GateType::Interrupt)
     }
@@ -99,13 +104,17 @@ pub struct IdtEntry {
 
 impl IdtEntry {
     /// An empty IDT entry, with default attributes and a NULL handler
-    pub const EMPTY: Self = Self::new_from_offset(0, SegmentSelector::new(GDT_KERNEL_CODE, PrivilegeLevel::Kernel), IdtEntryAttributes::default());
+    pub const EMPTY: Self = Self::new_from_offset(
+        0,
+        SegmentSelector::new(GDT_KERNEL_CODE, PrivilegeLevel::Kernel),
+        IdtEntryAttributes::default(),
+    );
 
     /// Construct a new IDT entry with a given offset.
     const fn new_from_offset(
         offset: usize,
         selector: SegmentSelector,
-        attributes: IdtEntryAttributes
+        attributes: IdtEntryAttributes,
     ) -> Self {
         Self {
             offset_low: offset as u16,
@@ -137,7 +146,8 @@ impl IdtEntry {
     }
 }
 
-/// The IDT descriptor contains the address and size of an [IDT](Idt). This structure is loaded into the CPU through the `lidt` instruction.
+/// The IDT descriptor contains the address and size of an [IDT](Idt). This structure is loaded into
+/// the CPU through the `lidt` instruction.
 #[repr(C, packed)]
 struct IdtDescriptor {
     size: u16,
@@ -146,7 +156,7 @@ struct IdtDescriptor {
 
 impl IdtDescriptor {
     fn new(size: u16, offset: u64) -> Self {
-        Self {size, offset}
+        Self { size, offset }
     }
 }
 
@@ -163,14 +173,17 @@ pub fn init() {
         load_idt(&idt_descriptor);
     }
 
-    log::debug!("Interrupts: IDT loaded at {:x?}", addr_of!(IDT.read().entries));
+    log::debug!(
+        "Interrupts: IDT loaded at {:x?}",
+        addr_of!(IDT.read().entries)
+    );
 
     register_exceptions();
     log::debug!("Interrupts: Registered CPU exceptions");
 }
 
 /// Load the idt pointed to by `descriptor` into the CPU.
-/// 
+///
 /// # Safety
 /// `descriptor` must point to a valid IDT descriptor.
 unsafe fn load_idt(descriptor: &IdtDescriptor) {

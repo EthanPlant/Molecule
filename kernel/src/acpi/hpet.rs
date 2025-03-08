@@ -64,7 +64,7 @@ impl Hpet {
         );
 
         let mut this = Self {
-            base: PhysAddr::new(table.address.address as usize).as_hddm_virt(),
+            base: PhysAddr::new(table.address.address as usize).as_hhdm_virt(),
             freq: 0,
         };
 
@@ -78,11 +78,7 @@ impl Hpet {
         );
         this.freq = freq;
 
-        log::debug!(
-            "ACPI: HPET(base = {:x?} freq = {} ns)",
-            this.base,
-            this.freq
-        );
+        log::debug!("ACPI: HPET(base = {:x} freq = {} ns)", this.base, this.freq);
 
         // Send initialization instructions to the HPET
         // Safety: base is initialized from the ACPI table and guaranteed to be valid. All registers
