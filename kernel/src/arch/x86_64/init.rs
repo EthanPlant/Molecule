@@ -36,7 +36,6 @@ extern "C" fn x86_64_molecule_main() -> ! {
             .get_response_mut()
             .expect("Attempting to retrieve memory map from Limine")
     };
-
     // let rsdp_response = RSDP_REQUEST
     //     .get_response()
     //     .expect("Attempting to retrieve RSDP from Limine");

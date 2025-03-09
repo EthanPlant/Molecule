@@ -141,6 +141,14 @@ impl SubAssign<usize> for PhysAddr {
     }
 }
 
+impl Sub<PhysAddr> for PhysAddr {
+    type Output = usize;
+
+    fn sub(self, rhs: PhysAddr) -> Self::Output {
+        self.as_usize() - rhs.as_usize()
+    }
+}
+
 impl From<usize> for PhysAddr {
     fn from(value: usize) -> Self {
         Self::new(value)
