@@ -92,6 +92,7 @@ impl IdtEntryAttributes {
 }
 
 /// In memory representation of an IDT entry.
+#[repr(C, packed)]
 pub struct IdtEntry {
     offset_low: u16,
     selector: SegmentSelector,

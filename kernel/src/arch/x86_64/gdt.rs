@@ -122,6 +122,7 @@ impl GdtDescriptor {
 /// A segment selector is an index into the GDT, containing the index of the GDT entry and the
 /// desired privilege level.
 #[repr(transparent)]
+#[derive(Debug)]
 pub(super) struct SegmentSelector(u16);
 
 impl SegmentSelector {

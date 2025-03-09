@@ -68,6 +68,11 @@ impl PhysAddr {
     pub const fn is_null(&self) -> bool {
         self.0 == 0
     }
+
+    /// Check whether the address is aligned.
+    pub fn is_aligned(self, align: usize) -> bool {
+        self.align_down(align) == self
+    }
 }
 
 impl fmt::Debug for PhysAddr {
@@ -166,7 +171,7 @@ impl VirtAddr {
 
     /// Creates a new virtual address from the given pointer.
     pub fn from_ptr<T: ?Sized>(ptr: *const T) -> Self {
-        Self::new(ptr as *const () as usize)
+        Self::new(ptr.cast::<()>() as usize)
     }
 
     /// Align the address upwards.
@@ -205,6 +210,11 @@ impl VirtAddr {
     /// Convienence method for checking if an address is null.
     pub const fn is_null(&self) -> bool {
         self.0 == 0
+    }
+
+    /// Check whether the address is aligned.
+    pub fn is_aligned(self, align: usize) -> bool {
+        self.align_down(align) == self
     }
 
     /// Reads `sizeof(T)` bytes from the virtual address and returns a reference to the value.

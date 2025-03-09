@@ -14,7 +14,7 @@ use core::ops::Deref;
 /// This wrapper ensures that no accidental modification of the stack frame occurs, which can caused
 /// undefined behaviour (see [as_mut](InterruptStackFrame::as_mut) for more information).
 #[repr(C)]
-struct InterruptStackFrame {
+pub(super) struct InterruptStackFrame {
     inner: InterruptStackFrameInner,
 }
 
@@ -48,7 +48,7 @@ impl fmt::Debug for InterruptStackFrame {
 }
 
 #[repr(C)]
-struct InterruptStackFrameInner {
+pub(super) struct InterruptStackFrameInner {
     rip: u64,
     cs: u64,
     rflags: u64,

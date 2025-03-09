@@ -29,16 +29,18 @@ extern "C" fn x86_64_molecule_main() -> ! {
     gdt::init();
     idt::init();
 
+    unsafe { core::arch::asm!("int 0x0") };
+
     let mem_map_response = unsafe {
         MEM_MAP_REQUEST
             .get_response_mut()
             .expect("Attempting to retrieve memory map from Limine")
     };
 
-    let rsdp_response = RSDP_REQUEST
-        .get_response()
-        .expect("Attempting to retrieve RSDP from Limine");
-    acpi::init(rsdp_response);
+    // let rsdp_response = RSDP_REQUEST
+    //     .get_response()
+    //     .expect("Attempting to retrieve RSDP from Limine");
+    // acpi::init(rsdp_response);
 
     crate::kmain()
 }
