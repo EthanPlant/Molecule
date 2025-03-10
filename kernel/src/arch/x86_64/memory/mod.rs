@@ -7,7 +7,8 @@ use page_table::{PageOffset, PageTable, PageTableIndex};
 
 use crate::memory::addr::{PhysAddr, VirtAddr};
 
-pub(super) mod address_space;
+mod address_space;
+pub(super) mod heap;
 mod page_table;
 
 /// Returns the currently used level 4 page table.

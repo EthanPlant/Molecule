@@ -110,7 +110,12 @@ impl AddressSpace {
     /// # Errors
     /// - [MapError::AllocationFailed] if we fail to allocate space for the page table entries.
     /// - [MapError::PageAlreadyMapped] if we attempt to map an already mapped page.
-    pub fn map_page(&mut self, page: Page, frame: PhysFrame) -> Result<PhysFrame, MapError> {
+    pub fn map_page(
+        &mut self,
+        page: Page,
+        frame: PhysFrame,
+        flags: PageTableFlags,
+    ) -> Result<PhysFrame, MapError> {
         let indicies = [
             page.start_addr().p4_index(),
             page.start_addr().p3_index(),
@@ -152,14 +157,9 @@ impl AddressSpace {
             return Err(MapError::PageAlreadyMapped(entry.frame().unwrap()));
         }
 
-        entry.set_frame(
-            &frame,
-            PageTableFlags::PRESENT | PageTableFlags::WRITABLE | PageTableFlags::USER_ACCESSIBLE,
-        );
+        entry.set_frame(&frame, flags);
 
         Self::invalidate_page(page);
-
-        log::debug!("Mapped {:?} to {:?}", page, entry.frame().unwrap());
 
         Ok(entry.frame().unwrap())
     }

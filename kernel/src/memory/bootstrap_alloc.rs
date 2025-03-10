@@ -32,11 +32,6 @@ impl BootstrapAlloc {
                 range.base += size;
                 range.size -= size;
 
-                log::debug!(
-                    "Memory: Bootstrap allocator allocated {size} bytes at {:x}",
-                    addr.as_hhdm_virt()
-                );
-
                 return Some(addr.as_hhdm_virt().as_mut_ptr());
             }
         }

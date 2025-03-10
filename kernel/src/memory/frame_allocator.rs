@@ -65,7 +65,6 @@ impl LockedFrameAllocator {
         let order = Self::order_from_size(bytes);
 
         let addr = self.0.lock_irq().allocate(order);
-        log::debug!("PFA Allocated {bytes} bytes at {:?}", addr);
         addr
     }
 
@@ -75,7 +74,6 @@ impl LockedFrameAllocator {
     ///
     /// Caller must ensure that the entire range from `addr` to `addr + size` is unused.
     pub unsafe fn dealloc(&self, addr: PhysAddr, bytes: usize) {
-        log::debug!("PFA Deallocated {bytes} bytes at {:x}", addr);
         let order = Self::order_from_size(bytes);
 
         self.0.lock_irq().deallocate(addr, order);

@@ -1,9 +1,9 @@
 //! x86_64 initialization.
 
 use super::interrupts::disable_interrupts;
+use crate::arch::x86_64::gdt;
 use crate::arch::x86_64::interrupts::idt;
-use crate::arch::x86_64::memory::address_space::AddressSpace;
-use crate::arch::x86_64::{gdt, paging};
+use crate::arch::x86_64::memory::heap;
 use crate::memory::addr::{VirtAddr, HHDM_OFFSET};
 use crate::memory::frame::PhysFrame;
 use crate::memory::frame_allocator::{get_frame_allocator, FrameAllocator};
@@ -41,12 +41,10 @@ extern "C" fn x86_64_molecule_main() -> ! {
     };
 
     memory::frame_allocator::init(mem_map_response);
-    let mut new_addr_space = AddressSpace::new().unwrap();
-    new_addr_space.switch();
-    let frame = new_addr_space.map_page(
-        Page::containing_addr(VirtAddr::new(0xDEADBEEF)),
-        get_frame_allocator().allocate_frame().unwrap(),
-    );
+    heap::init().expect("Attempting to allocate heap");
+
+    let vec = alloc::vec![1, 2, 3, 4];
+    log::debug!("{:?}", vec);
 
     // let rsdp_response = RSDP_REQUEST
     //     .get_response()

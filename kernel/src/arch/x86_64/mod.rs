@@ -7,7 +7,6 @@ mod init;
 pub mod interrupts;
 pub mod io;
 mod memory;
-mod paging;
 
 /// Represents a privilege level.
 enum PrivilegeLevel {
