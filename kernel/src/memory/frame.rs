@@ -59,6 +59,16 @@ impl<S: PageSize> PhysFrame<S> {
     pub const fn size(&self) -> usize {
         S::SIZE
     }
+
+    /// Returns a range of frames.
+    pub fn range(start: Self, end: Self) -> PhysFrameRange<S> {
+        PhysFrameRange { start, end }
+    }
+
+    /// /// Returns a range of frames, inclusive.
+    pub fn range_inclusive(start: Self, end: Self) -> PhysFrameRangeInclusive<S> {
+        PhysFrameRangeInclusive { start, end }
+    }
 }
 
 impl<S: PageSize> fmt::Debug for PhysFrame<S> {
@@ -99,6 +109,14 @@ impl<S: PageSize> SubAssign<usize> for PhysFrame<S> {
     }
 }
 
+impl<S: PageSize> Sub<Self> for PhysFrame<S> {
+    type Output = usize;
+
+    fn sub(self, rhs: Self) -> Self::Output {
+        (self.start_addr() - rhs.start_addr()) / S::SIZE
+    }
+}
+
 /// A range of physical memory frames, exclusive of the upper bound
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct PhysFrameRange<S: PageSize = Size4K> {
@@ -112,6 +130,20 @@ impl<S: PageSize> PhysFrameRange<S> {
     /// Returns whether the range contains no frames
     pub fn is_empty(&self) -> bool {
         self.start >= self.end
+    }
+
+    /// Returns the number of frames in the range.
+    pub fn len(&self) -> usize {
+        if !self.is_empty() {
+            self.end - self.start
+        } else {
+            0
+        }
+    }
+
+    /// Returns the size of the range in bytes.
+    pub fn size(&self) -> usize {
+        S::SIZE * self.len()
     }
 }
 
@@ -142,6 +174,20 @@ impl<S: PageSize> PhysFrameRangeInclusive<S> {
     /// Returns whether the range contains no frames
     pub fn is_empty(&self) -> bool {
         self.start >= self.end
+    }
+
+    /// Returns the number of frames in the range.
+    pub fn len(&self) -> usize {
+        if !self.is_empty() {
+            self.end - self.start + 1
+        } else {
+            0
+        }
+    }
+
+    /// Returns the size of the range in bytes.
+    pub fn size(&self) -> usize {
+        S::SIZE * self.len()
     }
 }
 

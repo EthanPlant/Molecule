@@ -133,7 +133,7 @@ impl SegmentSelector {
 }
 
 pub fn init() {
-    log::debug!("GDT: Loading GDT");
+    log::info!("GDT: Loading GDT");
     let gdt_descriptor = GdtDescriptor::new(
         (mem::size_of::<[GdtEntry; GDT_ENTRIES]>() - 1) as u16,
         addr_of!(GDT) as u64,
@@ -169,7 +169,7 @@ pub fn init() {
         ));
     }
 
-    log::debug!("GDT: Loaded GDT at address {:x?}", addr_of!(GDT));
+    log::info!("GDT: Loaded GDT at address {:x?}", addr_of!(GDT));
 }
 
 /// Load the GDT described by `descriptor` into the CPU

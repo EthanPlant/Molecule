@@ -163,7 +163,7 @@ impl IdtDescriptor {
 
 /// Initialize and load the IDT.
 pub fn init() {
-    log::debug!("Interrupts: Initializing IDT");
+    log::info!("Interrupts: Initializing IDT");
     let idt_descriptor = IdtDescriptor::new(
         (mem::size_of::<[IdtEntry; IDT_ENTRIES]>() - 1) as u16,
         addr_of!(IDT.read().entries) as u64,
@@ -174,13 +174,13 @@ pub fn init() {
         load_idt(&idt_descriptor);
     }
 
-    log::debug!(
+    log::info!(
         "Interrupts: IDT loaded at {:x?}",
         addr_of!(IDT.read().entries)
     );
 
     register_exceptions();
-    log::debug!("Interrupts: Registered CPU exceptions");
+    log::info!("Interrupts: Registered CPU exceptions");
 }
 
 /// Load the idt pointed to by `descriptor` into the CPU.

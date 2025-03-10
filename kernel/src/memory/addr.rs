@@ -141,7 +141,7 @@ impl SubAssign<usize> for PhysAddr {
     }
 }
 
-impl Sub<PhysAddr> for PhysAddr {
+impl Sub<Self> for PhysAddr {
     type Output = usize;
 
     fn sub(self, rhs: PhysAddr) -> Self::Output {
@@ -354,6 +354,14 @@ impl Sub<usize> for VirtAddr {
 impl SubAssign<usize> for VirtAddr {
     fn sub_assign(&mut self, rhs: usize) {
         *self = *self - rhs
+    }
+}
+
+impl Sub<Self> for VirtAddr {
+    type Output = usize;
+
+    fn sub(self, rhs: Self) -> Self::Output {
+        self.0 - rhs.0
     }
 }
 
