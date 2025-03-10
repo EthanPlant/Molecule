@@ -369,7 +369,12 @@ impl From<VirtAddr> for usize {
     }
 }
 
-fn align_up(addr: usize, align: usize) -> usize {
+/// Align `addr` up to `align`.
+///
+/// # Panics
+///
+/// This function panics if `align` is not a power of two.
+pub fn align_up(addr: usize, align: usize) -> usize {
     assert!(align.is_power_of_two());
 
     let mask = align - 1;
@@ -380,7 +385,12 @@ fn align_up(addr: usize, align: usize) -> usize {
     }
 }
 
-fn align_down(addr: usize, align: usize) -> usize {
+/// Align `addr` down to `align`.
+///
+/// # Panics
+///
+/// This function panics if `align` is not a power of two.
+pub fn align_down(addr: usize, align: usize) -> usize {
     assert!(align.is_power_of_two());
     addr & !(align - 1)
 }

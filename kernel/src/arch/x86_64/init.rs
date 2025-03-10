@@ -4,7 +4,11 @@ use super::interrupts::disable_interrupts;
 use crate::arch::x86_64::interrupts::idt;
 use crate::arch::x86_64::{gdt, paging};
 use crate::memory::addr::{VirtAddr, HHDM_OFFSET};
-use crate::{acpi, drivers, logger, HHDM_REQUEST, MEM_MAP_REQUEST, RSDP_REQUEST};
+use crate::memory::frame::PhysFrame;
+use crate::memory::frame_allocator::FrameAllocator;
+use crate::memory::mem_map;
+use crate::memory::page::{Size2M, Size4K};
+use crate::{acpi, drivers, logger, memory, HHDM_REQUEST, MEM_MAP_REQUEST, RSDP_REQUEST};
 
 /// Kernel entry point. This function performs early initialization for the kernel's subsystems
 /// before passing control over to [crate::kmain].
@@ -29,13 +33,20 @@ extern "C" fn x86_64_molecule_main() -> ! {
     gdt::init();
     idt::init();
 
-    unsafe { core::arch::asm!("int 0x0") };
-
     let mem_map_response = unsafe {
         MEM_MAP_REQUEST
             .get_response_mut()
             .expect("Attempting to retrieve memory map from Limine")
     };
+
+    memory::frame_allocator::init(mem_map_response);
+    let frame: Option<PhysFrame<Size4K>> =
+        memory::frame_allocator::get_frame_allocator().allocate_frame();
+    let large_frame: Option<PhysFrame<Size2M>> =
+        memory::frame_allocator::get_frame_allocator().allocate_frame();
+
+    log::debug!("Frame: {:?}", frame);
+    log::debug!("Large frame: {:?}", large_frame);
     // let rsdp_response = RSDP_REQUEST
     //     .get_response()
     //     .expect("Attempting to retrieve RSDP from Limine");

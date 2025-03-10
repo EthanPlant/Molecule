@@ -30,6 +30,21 @@ pub struct MemoryRegionIter<'a> {
     cursor_end: PhysAddr,
 }
 
+impl<'a> MemoryRegionIter<'a> {
+    /// Create a new `MemoryRegionIter`.
+    pub fn new(
+        iter: core::slice::Iter<'a, &'a memory_map::Entry>,
+        base: PhysAddr,
+        end: PhysAddr,
+    ) -> Self {
+        Self {
+            iter,
+            cursor_base: base,
+            cursor_end: end,
+        }
+    }
+}
+
 impl Iterator for MemoryRegionIter<'_> {
     type Item = MemoryRegion;
 

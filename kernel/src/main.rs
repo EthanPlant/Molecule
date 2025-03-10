@@ -4,6 +4,7 @@
 #![feature(strict_provenance_atomic_ptr)]
 #![feature(ptr_internals)]
 #![feature(abi_x86_interrupt)]
+#![feature(maybe_uninit_slice)]
 #![no_std]
 #![no_main]
 #![deny(trivial_numeric_casts, unused_allocation)]
