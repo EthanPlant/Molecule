@@ -4,12 +4,15 @@ use super::interrupts::disable_interrupts;
 use crate::arch::x86_64::gdt;
 use crate::arch::x86_64::interrupts::idt;
 use crate::arch::x86_64::memory::heap;
+use crate::drivers::framebuffer;
 use crate::memory::addr::{VirtAddr, HHDM_OFFSET};
 use crate::memory::frame::PhysFrame;
 use crate::memory::frame_allocator::{get_frame_allocator, FrameAllocator};
 use crate::memory::mem_map;
 use crate::memory::page::{Page, Size2M, Size4K};
-use crate::{acpi, drivers, logger, memory, HHDM_REQUEST, MEM_MAP_REQUEST, RSDP_REQUEST};
+use crate::{
+    acpi, drivers, logger, memory, FRAMEBUFFER_REQUEST, HHDM_REQUEST, MEM_MAP_REQUEST, RSDP_REQUEST,
+};
 
 /// Kernel entry point. This function performs early initialization for the kernel's subsystems
 /// before passing control over to [crate::kmain].
@@ -43,9 +46,10 @@ extern "C" fn x86_64_molecule_main() -> ! {
     memory::frame_allocator::init(mem_map_response);
     heap::init().expect("Attempting to allocate heap");
 
-    let vec = alloc::vec![1, 2, 3, 4];
-    log::debug!("{:?}", vec);
-
+    let fb_resp = FRAMEBUFFER_REQUEST
+        .get_response()
+        .expect("Attempting to retrieve framebuffer from Limine");
+    framebuffer::init(fb_resp);
     // let rsdp_response = RSDP_REQUEST
     //     .get_response()
     //     .expect("Attempting to retrieve RSDP from Limine");

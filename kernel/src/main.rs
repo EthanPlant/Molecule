@@ -18,7 +18,6 @@
 use alloc::sync::Arc;
 use core::arch::asm;
 
-use drivers::framebuffer::color::Color;
 use drivers::framebuffer::console::{print, println};
 use drivers::framebuffer::{self, framebuffer};
 use limine::request::{

@@ -1,32 +1,31 @@
-use core::ptr;
+//! Abstractions around a linear framebuffer.
+
 use core::sync::atomic::{AtomicPtr, Ordering};
 
 use color::Color;
 use spin::Once;
 
-use crate::drivers::uart_16650::serial_println;
 use crate::psf::PsfFont;
 use crate::sync::{Mutex, MutexGuard};
-use crate::{logger, FRAMEBUFFER_REQUEST};
 
-pub mod color;
+mod color;
 pub mod console;
 
-pub static FRAMEBUFFER: Once<Mutex<FrameBufferInfo>> = Once::new();
+/// The global framebuffer.
+static FRAMEBUFFER: Once<Mutex<FramebufferInfo>> = Once::new();
 
-/// In-memory representation of the framebuffer's data.
-pub struct FrameBufferInfo {
+/// In-memory representation of a linear framebuffer
+struct FramebufferInfo {
     addr: AtomicPtr<u32>,
     width: usize,
     height: usize,
     pitch: usize,
 }
 
-impl FrameBufferInfo {
-    /// Create a new `FrameBufferInfo` from a limine framebuffer.
+impl FramebufferInfo {
+    /// Create a new [FramebufferInfo] from a Limine framebuffer
     pub fn new(framebuffer: &limine::framebuffer::Framebuffer) -> Self {
         Self {
-            #[allow(clippy::cast_ptr_alignment)]
             addr: AtomicPtr::new(framebuffer.addr().cast::<u32>()),
             width: framebuffer.width() as usize,
             height: framebuffer.height() as usize,
@@ -34,90 +33,66 @@ impl FrameBufferInfo {
         }
     }
 
-    /// Clear the entire screen to a single color
+    /// Clear the entire framebuffer to a specific color.
     pub fn clear_screen(&self, color: Color) {
-        for y in 0..self.height {
-            for x in 0..self.width {
-                let offset = (y * self.pitch) / 4 + x;
-                // Safety: The offset is guaranteed to be a valid location in the framebuffer
-                unsafe {
-                    *self.addr.load(Ordering::Relaxed).add(offset) = color.value();
-                }
+        for i in 0..self.height {
+            for j in 0..self.width {
+                let offset = self.get_offset(i, j);
+                // Safety: `offset` is guaranteed to be a valid location in the framebuffer's bounds
+                unsafe { *self.addr.load(Ordering::Relaxed).add(offset) = color.value() };
             }
         }
     }
 
-    /// Draw a single pixel at the specified location
-    /// If the pixel location is outside of the framebuffer, nothing occurs.
+    /// Draw a single pixel at the specified location if it is within the framebuffer's bounds.
     pub fn draw_pixel(&self, x: usize, y: usize, color: Color) {
         if x < self.width && y < self.height {
-            let offset = (y * self.pitch) / 4 + x;
-            // Safety: The offset is guaranteed to be a valid location in the framebuffer
-            unsafe {
-                *self.addr.load(Ordering::Relaxed).add(offset) = color.value();
-            }
+            let offset = self.get_offset(x, y);
+            // Safety: `offset` is guaranteed to be a valid location in the framebuffer's bounds
+            unsafe { *self.addr.load(Ordering::Relaxed).add(offset) = color.value() }
         }
     }
 
-    /// Draw a character on the screen at the specified location
-    pub fn draw_char(&self, x: usize, y: usize, color: Color, c: char, font: &PsfFont) {
-        let b = c as u8;
+    /// Draw a character on the screen at the specified location.
+    pub fn draw_char(&self, x: usize, y: usize, c: char, color: Color, font: &PsfFont) {
+        let byte = c as u8;
         for row in 0..font.height() as usize {
-            let glyph = font.read_glyph_row(b as usize, row);
+            let glyph = font.read_glyph_row(byte as usize, row);
 
             for pixel in 0..font.width() as usize {
                 let mask = 0x80 >> pixel;
                 let bit = glyph & mask;
                 if bit != 0 {
                     self.draw_pixel(x + pixel, y + row, color);
+                } else {
+                    self.draw_pixel(x + pixel, y + row, Color::BLACK);
                 }
             }
         }
     }
 
-    /// Draw a string of text onto the screen at the specified location
-    pub fn draw_string(&self, x: usize, y: usize, color: Color, s: &str, font: &PsfFont) {
-        for (i, c) in s.chars().enumerate() {
-            self.draw_char(x + i * font.width() as usize + 1, y, color, c, font);
-        }
-    }
-
-    pub fn scroll(&self, scroll_height: usize) {
-        assert!(scroll_height < self.height);
-        unsafe {
-            let scroll_size = self.pitch * scroll_height;
-            let dest = self.addr.load(Ordering::Acquire);
-            let src = dest.add(scroll_size / 4);
-
-            let size = (self.pitch * self.height).saturating_sub(scroll_size) / 4;
-            ptr::copy(src, dest, size);
-
-            let clear = dest.add(size);
-            ptr::write_bytes(clear, 0x00, scroll_size);
-        }
+    /// Get the offset into the framebuffer's memory from a given position
+    fn get_offset(&self, x: usize, y: usize) -> usize {
+        (y * self.pitch) / core::mem::size_of::<u32>() + x
     }
 }
 
-pub fn init() {
-    let fb_resp = FRAMEBUFFER_REQUEST
-        .get_response()
-        .expect("No framebuffer response from Limine");
+/// Initialize the global framebuffer from a Limine framebuffer response
+pub fn init(framebuffer: &limine::response::FramebufferResponse) {
+    let fb = framebuffer
+        .framebuffers()
+        .next()
+        .expect("Attempting to get framebuffer from response");
 
-    FRAMEBUFFER.call_once(|| {
-        Mutex::new(FrameBufferInfo::new(
-            &fb_resp
-                .framebuffers()
-                .next()
-                .expect("No framebuffer returned from Limine"),
-        ))
-    });
+    FRAMEBUFFER.call_once(|| Mutex::new(FramebufferInfo::new(&fb)));
 
-    logger::set_console_debug(true);
+    console::init();
 }
 
-pub fn framebuffer() -> MutexGuard<'static, FrameBufferInfo> {
+/// Get the global framebufffer.
+pub fn framebuffer() -> MutexGuard<'static, FramebufferInfo> {
     FRAMEBUFFER
         .get()
-        .expect("Framebuffer is initialized")
+        .expect("Attempted to retrieve framebuffer before it was initialized")
         .lock_irq()
 }
