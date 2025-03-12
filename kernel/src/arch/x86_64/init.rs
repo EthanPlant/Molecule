@@ -1,10 +1,10 @@
 //! x86_64 initialization.
 
 use super::interrupts::disable_interrupts;
-use crate::arch::interrupts::apic;
-use crate::arch::x86_64::gdt;
+use crate::arch::interrupts::{apic, enable_interrupts};
 use crate::arch::x86_64::interrupts::idt;
 use crate::arch::x86_64::memory::heap;
+use crate::arch::x86_64::{gdt, time};
 use crate::drivers::framebuffer;
 use crate::memory::addr::{VirtAddr, HHDM_OFFSET};
 use crate::memory::frame::PhysFrame;
@@ -58,6 +58,9 @@ extern "C" fn x86_64_molecule_main() -> ! {
     acpi::init(rsdp_response);
 
     apic::init();
+    time::init();
+
+    enable_interrupts();
 
     crate::kmain()
 }

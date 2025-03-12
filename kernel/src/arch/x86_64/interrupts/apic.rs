@@ -7,6 +7,7 @@ use spin::Once;
 
 use super::idt::{self, IDT};
 use super::{allocate_vector, InterruptStackFrame};
+use crate::acpi::hpet;
 use crate::acpi::madt::{IO_APICS, OVERRIDES};
 use crate::arch::io;
 use crate::memory::addr::{PhysAddr, VirtAddr};
@@ -26,6 +27,15 @@ const EOI: u32 = 0x0b0;
 const XAPIC_SVR: u32 = 0x0f0;
 /// Local Vector Table Error. R/W. Contains vector to LVT error interrupt.
 const LVT_ERROR: u32 = 0x370;
+
+/// APIC timer interrupt vector R/W.
+const APIC_LVT_TIMER: u32 = 0x320;
+/// APIC timer initial count. R/W
+const APIC_TIMER_INIT_COUNT: u32 = 0x380;
+/// Current APIC timer count. Read only.
+const APIC_TIMER_COUNT: u32 = 0x390;
+/// APIC timer divisor. R/W.
+const APIC_TIMER_DIV: u32 = 0x3e0;
 
 /// I/O APIC Version Register
 const IOAPIC_VER: u32 = 1;
@@ -71,7 +81,7 @@ impl From<FeatureInfo> for ApicType {
 }
 
 /// In-memory representation of the CPU's local APIC (LAPIC)
-struct LocalApic {
+pub struct LocalApic {
     addr: VirtAddr,
     apic_type: ApicType,
 }
@@ -95,6 +105,28 @@ impl LocalApic {
         self.write_register(XAPIC_TPR, 0x00); // Clear the TPR to enable all interrupts
         self.set_up_spurious();
         self.set_up_lvt_err();
+    }
+
+    /// Calibrate the APIC timer and set it to interrupt on vector `vec`. Returns the calibrated
+    /// number of ticks in 10 ms.
+    pub fn timer_calibrate(&mut self, vec: u8) -> u32 {
+        // Safety: All timer registers are valid registers
+        unsafe {
+            self.write_register(APIC_TIMER_DIV, 0x03); // Tell APIC timer to use divider 16
+            self.write_register(APIC_TIMER_INIT_COUNT, 0xffff_ffff); // Set initial count to -1
+            hpet::sleep(10);
+            self.write_register(APIC_LVT_TIMER, (1 << 16)); // Stop the timer.
+            let ticks = 0xffff_ffff - self.read_register(APIC_TIMER_COUNT);
+
+            log::debug!("Calibrated timer ticks {}", ticks);
+
+            self.write_register(APIC_LVT_TIMER, vec as u32 | 0x20000);
+
+            self.write_register(APIC_TIMER_DIV, 1);
+            self.write_register(APIC_TIMER_INIT_COUNT, ticks);
+
+            ticks
+        }
     }
 
     /// Send an end-of-interrupt signal to mark an interrupt as acknowledged.
@@ -170,7 +202,7 @@ impl LocalApic {
 }
 
 /// Set up an IRQ using the I/O APIC to point `irq` to interrupt `vec`.
-fn ioapic_setup_irq(irq: u8, vec: u8, flags: u16) {
+pub fn ioapic_setup_irq(irq: u8, vec: u8) {
     let overrides = OVERRIDES.read();
     for entry in overrides.iter() {
         if entry.irq() == irq {
