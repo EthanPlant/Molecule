@@ -183,6 +183,12 @@ pub fn init() {
     log::info!("Interrupts: Registered CPU exceptions");
 }
 
+/// Set the handler for a given interrupt
+pub fn set_handler(vec: usize, handler: Handler) {
+    log::debug!("Set interrupt {vec} to {handler:?}");
+    IDT.write().set_handler(vec, handler);
+}
+
 /// Load the idt pointed to by `descriptor` into the CPU.
 ///
 /// # Safety

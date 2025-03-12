@@ -1,11 +1,13 @@
 //! x86_64 interrupt handling
 
+pub(super) mod apic;
 mod exception;
 pub(super) mod idt;
 
 use core::arch::asm;
 use core::fmt;
 use core::ops::Deref;
+use core::sync::atomic::{AtomicU8, Ordering};
 
 /// Wrapper around the interrupt stack frame pushed by the CPU.
 ///
@@ -73,6 +75,21 @@ impl fmt::Debug for InterruptStackFrameInner {
         s.field("ss", &self.ss);
         s.finish()
     }
+}
+
+/// Allocate a vector for an interrupt.
+///
+/// # Panics
+///
+/// This function panics if all 256 interrupts have been exhausted.
+pub fn allocate_vector() -> u8 {
+    static VECTOR: AtomicU8 = AtomicU8::new(32);
+    let vec = VECTOR.fetch_add(1, Ordering::AcqRel);
+    if vec == 0xf0 {
+        panic!("Interrupts: Vector allocation exhaused");
+    }
+
+    vec
 }
 
 /// Wrapper around `cli` to disable hardware interrupts.

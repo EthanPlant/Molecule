@@ -1,6 +1,7 @@
 //! x86_64 initialization.
 
 use super::interrupts::disable_interrupts;
+use crate::arch::interrupts::apic;
 use crate::arch::x86_64::gdt;
 use crate::arch::x86_64::interrupts::idt;
 use crate::arch::x86_64::memory::heap;
@@ -50,10 +51,13 @@ extern "C" fn x86_64_molecule_main() -> ! {
         .get_response()
         .expect("Attempting to retrieve framebuffer from Limine");
     framebuffer::init(fb_resp);
-    // let rsdp_response = RSDP_REQUEST
-    //     .get_response()
-    //     .expect("Attempting to retrieve RSDP from Limine");
-    // acpi::init(rsdp_response);
+
+    let rsdp_response = RSDP_REQUEST
+        .get_response()
+        .expect("Attempting to retrieve RSDP from Limine");
+    acpi::init(rsdp_response);
+
+    apic::init();
 
     crate::kmain()
 }
