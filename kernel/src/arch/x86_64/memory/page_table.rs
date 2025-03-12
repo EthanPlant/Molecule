@@ -235,6 +235,11 @@ impl PageTableIndex {
     pub const fn new_truncate(index: u16) -> Self {
         Self(index % ENTRY_COUNT as u16)
     }
+
+    /// Get the inner value of the index
+    pub fn inner(&self) -> u16 {
+        self.0
+    }
 }
 
 /// A 12-bit offset into a 4 KiB page. Guaranteed to only ever contain 0..4096
@@ -250,5 +255,10 @@ impl PageOffset {
     /// Creates a new offset from the given value. Throws away bits if the value is >= 4096.
     pub fn new_truncate(offset: u16) -> Self {
         Self(offset % (1 << 12))
+    }
+
+    /// Get the inner value of the page offset
+    pub fn inner(&self) -> u16 {
+        self.0
     }
 }

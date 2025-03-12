@@ -17,7 +17,7 @@ use core::sync::atomic::{AtomicU8, Ordering};
 /// undefined behaviour (see [as_mut](InterruptStackFrame::as_mut) for more information).
 #[repr(C)]
 pub(super) struct InterruptStackFrame {
-    inner: InterruptStackFrameInner,
+    pub inner: InterruptStackFrameInner,
 }
 
 impl InterruptStackFrame {
@@ -51,11 +51,11 @@ impl fmt::Debug for InterruptStackFrame {
 
 #[repr(C)]
 pub(super) struct InterruptStackFrameInner {
-    rip: u64,
-    cs: u64,
-    rflags: u64,
-    rsp: u64,
-    ss: u64,
+    pub rip: u64,
+    pub cs: u64,
+    pub rflags: u64,
+    pub rsp: u64,
+    pub ss: u64,
 }
 
 impl fmt::Debug for InterruptStackFrameInner {

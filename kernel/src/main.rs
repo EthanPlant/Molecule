@@ -18,6 +18,7 @@
 use alloc::sync::Arc;
 use core::arch::asm;
 
+use arch::interrupts::{self, enable_interrupts};
 use drivers::framebuffer::console::{print, println};
 use drivers::framebuffer::{self, framebuffer};
 use limine::request::{
@@ -26,6 +27,8 @@ use limine::request::{
 };
 use limine::BaseRevision;
 use linked_list_allocator::LockedHeap;
+use process::scheduler::{self, get_scheduler, Scheduler};
+use process::Process;
 use psf::PsfFont;
 
 extern crate alloc;
@@ -37,7 +40,6 @@ mod logger;
 mod memory;
 mod process;
 mod psf;
-mod scheduler;
 mod sync;
 mod utils;
 
@@ -85,23 +87,23 @@ pub static mut TICKS: usize = 0;
 pub fn kmain() -> ! {
     log::info!("Starting Molecule {}", env!("CARGO_PKG_VERSION"));
 
-    // // All limine requests must also be referenced in a called function, otherwise they may be
-    // // removed by the linker.
-    // assert!(BASE_REVISION.is_supported());
+    scheduler::init();
 
-    // scheduler::init();
-    // log::info!("Scheduler initialized!");
-    // scheduler().register_process(Process::new_kernel(kernel_task, true));
+    let p1 = Process::new_kernel(kernel_process);
 
-    // #[cfg(target_arch = "x86_64")]
-    // apic::set_bsp_ready();
+    get_scheduler().add_process(p1);
 
-    // unsafe { enable_interrupts() };
+    enable_interrupts();
 
     hcf();
 }
 
 pub fn ap_kmain(ap: u32) -> ! {
+    hcf();
+}
+
+pub fn kernel_process() -> ! {
+    log::trace!("Hi from a process!");
     hcf();
 }
 
@@ -115,7 +117,7 @@ fn hcf() -> ! {
     loop {
         unsafe {
             #[cfg(target_arch = "x86_64")]
-            asm!("hlt");
+            asm!("sti; hlt");
             #[cfg(any(target_arch = "aarch64", target_arch = "riscv64"))]
             asm!("wfi");
             #[cfg(target_arch = "loongarch64")]

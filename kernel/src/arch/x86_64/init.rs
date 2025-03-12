@@ -60,7 +60,5 @@ extern "C" fn x86_64_molecule_main() -> ! {
     apic::init();
     time::init();
 
-    enable_interrupts();
-
     crate::kmain()
 }

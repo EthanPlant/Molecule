@@ -7,7 +7,7 @@ use page_table::{PageOffset, PageTable, PageTableIndex};
 
 use crate::memory::addr::{PhysAddr, VirtAddr};
 
-mod address_space;
+pub(super) mod address_space;
 pub(super) mod heap;
 mod page_table;
 

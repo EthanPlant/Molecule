@@ -6,7 +6,7 @@ use core::mem::{self, MaybeUninit};
 
 use super::active_level_4_table;
 use super::page_table::{self, FrameError, PageTable, PageTableFlags};
-use crate::memory::addr::PhysAddr;
+use crate::memory::addr::{PhysAddr, VirtAddr};
 use crate::memory::frame::PhysFrame;
 use crate::memory::frame_allocator::{self, get_frame_allocator, FrameAllocator};
 use crate::memory::page::{Page, Size4K};
@@ -103,6 +103,36 @@ impl AddressSpace {
     pub fn page_table_mut(&mut self) -> &'static mut PageTable {
         // Safety: `cr3` always points to a page table.
         unsafe { &mut *(self.cr3.as_hhdm_virt().as_mut_ptr()) }
+    }
+
+    /// Translate the given virtual address to a physical address. Returns `None` if the address is
+    /// not mapped.
+    pub fn translate_addr(&self, addr: VirtAddr) -> Option<PhysAddr> {
+        let indicies = [
+            addr.p1_index(),
+            addr.p2_index(),
+            addr.p3_index(),
+            addr.p4_index(),
+        ];
+        let mut frame = PhysFrame::containing_addr(self.cr3);
+        for (level, &index) in indicies.iter().enumerate().rev() {
+            let page_table = unsafe { &*(frame.start_addr().as_hhdm_virt().as_ptr::<PageTable>()) };
+            let entry = page_table[index];
+            frame = match entry.frame() {
+                Ok(frame) => frame,
+                Err(FrameError::FrameNotPresent) => return None,
+                Err(FrameError::HugeFrame) => {
+                    assert!((level == 1), "Level {} has large page flag set", level + 1);
+                    return Some(
+                        entry.addr()
+                            + addr.p1_index().inner() as usize
+                            + addr.page_offset().inner() as usize,
+                    );
+                }
+            }
+        }
+
+        Some(frame.start_addr() + addr.page_offset().inner() as usize)
     }
 
     /// Map a page of virtual memory to a physical frame, returning the newly mapped frame.

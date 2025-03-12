@@ -3,12 +3,13 @@
 use super::interrupts::apic::ioapic_setup_irq;
 use super::interrupts::{allocate_vector, idt, InterruptStackFrame};
 use crate::arch::interrupts::apic::get_local_apic;
+use crate::process::scheduler;
 
 const TIMER_IRQ: u8 = 0;
 
 extern "x86-interrupt" fn timer_handler(_stack: InterruptStackFrame) {
-    log::debug!("Tick");
     get_local_apic().eoi();
+    scheduler::tick();
 }
 
 /// Initialize the timer.

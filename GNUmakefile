@@ -2,6 +2,8 @@
 MAKEFLAGS += -rR
 .SUFFIXES:
 
+HOST := host,-x2apic
+
 # Convenience macro to reliably declare user overridable variables.
 override USER_VARIABLE = $(if $(filter $(origin $(1)),default undefined),$(eval override $(1) := $(2)))
 
@@ -9,7 +11,7 @@ override USER_VARIABLE = $(if $(filter $(origin $(1)),default undefined),$(eval 
 $(call USER_VARIABLE,KARCH,x86_64)
 
 # Default user QEMU flags. These are appended to the QEMU command calls.
-$(call USER_VARIABLE,QEMUFLAGS,-m 4G -serial stdio -smp 2)
+$(call USER_VARIABLE,QEMUFLAGS,-m 4G -serial stdio -smp 2 -enable-kvm -cpu $(HOST))
 
 override IMAGE_NAME := template-$(KARCH)
 
