@@ -26,23 +26,23 @@ impl log::Log for MoleculeLogger {
 
             let console_debug = CONSOLE_DEBUG.load(Ordering::Relaxed);
 
-            macro generic_log($($arg:tt)*) {
+            macro generic_log($level:ident, $($arg:tt)*) {
                 {
-                    serial_print!("{}", format_args!($($arg)*));
+                    let level = match $level {
+                        Level::Error => "\x1b[31m[ERROR]",
+                        Level::Warn => "\x1b[33m[WARN]",
+                        Level::Info => "\x1b[32m[INFO]",
+                        Level::Debug => "\x1b[34m[DEBUG]",
+                        Level::Trace => "\x1b[37m[TRACE]"
+                    };
+                    serial_print!("{}{}", level, format_args!($($arg)*));
                     if console_debug {
-                        $crate::drivers::framebuffer::console::print!("{}", format_args!($($arg)*));
+                        $crate::drivers::framebuffer::console::print!("{}{}", level, format_args!($($arg)*));
                     }
                 }
             }
 
-            match level {
-                Level::Error => generic_log!("\x1b[31m[ERROR]"),
-                Level::Warn => generic_log!("\x1b[33m[WARN]"),
-                Level::Info => generic_log!("\x1b[32m[INFO]"),
-                Level::Debug => generic_log!("\x1b[34m[DEBUG]"),
-                Level::Trace => generic_log!("\x1b[37m[TRACE]"),
-            };
-            generic_log!("\x1b[0m {}:{} - {}\n", file, line, record.args());
+            generic_log!(level, "\x1b[0m {}:{} - {}\n", file, line, record.args())
         }
     }
 
