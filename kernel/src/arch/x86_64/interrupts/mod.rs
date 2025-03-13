@@ -30,6 +30,7 @@ impl InterruptStackFrame {
     ///
     /// As such, great care should be taken when using this function to ensure all modifications to
     /// the stack frame are sound.
+    #[allow(dead_code)]
     pub unsafe fn as_mut(&mut self) -> &mut InterruptStackFrameInner {
         &mut self.inner
     }

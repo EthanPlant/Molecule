@@ -4,7 +4,7 @@ use core::fmt;
 use core::marker::PhantomData;
 use core::ops::{Add, AddAssign, Sub, SubAssign};
 
-use super::addr::{AddrError, PhysAddr};
+use super::addr::PhysAddr;
 use super::page::{PageSize, Size4K};
 
 /// A Physical memory frame
@@ -16,32 +16,6 @@ pub struct PhysFrame<S: PageSize = Size4K> {
 }
 
 impl<S: PageSize> PhysFrame<S> {
-    /// Returns the frame that starts at the given physical address.
-    ///
-    /// # Errors
-    ///
-    /// Returns [AddrError::NotAligned] if the address is not correctly aligned
-    pub fn from_start(start_addr: PhysAddr) -> Result<Self, AddrError> {
-        if !start_addr.is_aligned(S::SIZE) {
-            return Err(AddrError::NotAligned);
-        }
-
-        // Safety: We've guaranteed the start address is aligned
-        Ok(unsafe { Self::from_start_unchecked(start_addr) })
-    }
-
-    /// Returns the frame that starts at the given physical address.
-    ///
-    /// # Safety
-    ///
-    /// `start_addr` must be aligned to a frame start
-    pub const unsafe fn from_start_unchecked(start_addr: PhysAddr) -> Self {
-        Self {
-            start_addr,
-            size: PhantomData,
-        }
-    }
-
     /// Returns the frame that contains the given physical address.
     pub fn containing_addr(addr: PhysAddr) -> Self {
         Self {
@@ -53,21 +27,6 @@ impl<S: PageSize> PhysFrame<S> {
     /// Returns the start address of the frame
     pub const fn start_addr(&self) -> PhysAddr {
         self.start_addr
-    }
-
-    /// Returns the size of the frame
-    pub const fn size(&self) -> usize {
-        S::SIZE
-    }
-
-    /// Returns a range of frames.
-    pub fn range(start: Self, end: Self) -> PhysFrameRange<S> {
-        PhysFrameRange { start, end }
-    }
-
-    /// /// Returns a range of frames, inclusive.
-    pub fn range_inclusive(start: Self, end: Self) -> PhysFrameRangeInclusive<S> {
-        PhysFrameRangeInclusive { start, end }
     }
 }
 
@@ -126,27 +85,6 @@ pub struct PhysFrameRange<S: PageSize = Size4K> {
     pub end: PhysFrame<S>,
 }
 
-impl<S: PageSize> PhysFrameRange<S> {
-    /// Returns whether the range contains no frames
-    pub fn is_empty(&self) -> bool {
-        self.start >= self.end
-    }
-
-    /// Returns the number of frames in the range.
-    pub fn len(&self) -> usize {
-        if !self.is_empty() {
-            self.end - self.start
-        } else {
-            0
-        }
-    }
-
-    /// Returns the size of the range in bytes.
-    pub fn size(&self) -> usize {
-        S::SIZE * self.len()
-    }
-}
-
 impl<S: PageSize> Iterator for PhysFrameRange<S> {
     type Item = PhysFrame<S>;
 
@@ -168,27 +106,6 @@ pub struct PhysFrameRangeInclusive<S: PageSize = Size4K> {
     pub start: PhysFrame<S>,
     /// The end of the range, exclusive
     pub end: PhysFrame<S>,
-}
-
-impl<S: PageSize> PhysFrameRangeInclusive<S> {
-    /// Returns whether the range contains no frames
-    pub fn is_empty(&self) -> bool {
-        self.start >= self.end
-    }
-
-    /// Returns the number of frames in the range.
-    pub fn len(&self) -> usize {
-        if !self.is_empty() {
-            self.end - self.start + 1
-        } else {
-            0
-        }
-    }
-
-    /// Returns the size of the range in bytes.
-    pub fn size(&self) -> usize {
-        S::SIZE * self.len()
-    }
 }
 
 impl<S: PageSize> Iterator for PhysFrameRangeInclusive<S> {

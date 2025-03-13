@@ -1,11 +1,9 @@
 //! x86_64 specific virtual memory management
 
-use core::arch::asm;
-
 use address_space::AddressSpace;
 use page_table::{PageOffset, PageTable, PageTableIndex};
 
-use crate::memory::addr::{PhysAddr, VirtAddr};
+use crate::memory::addr::VirtAddr;
 
 pub(super) mod address_space;
 pub(super) mod heap;

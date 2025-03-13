@@ -1,13 +1,12 @@
 //! Architecture specific process information.
 
-use core::arch::{asm, global_asm};
+use core::arch::global_asm;
 use core::mem::offset_of;
 
-use super::interrupts::{enable_interrupts, InterruptStackFrame, InterruptStackFrameInner};
+use super::interrupts::{InterruptStackFrame, InterruptStackFrameInner};
 use super::memory::address_space::AddressSpace;
-use crate::memory::addr::{PhysAddr, VirtAddr};
+use crate::memory::addr::VirtAddr;
 use crate::memory::frame_allocator::get_frame_allocator;
-use crate::process::Process;
 
 const KERNEL_STACK_SIZE: usize = 1024 * 16;
 
@@ -44,7 +43,7 @@ impl Drop for KernelStack {
 /// Architecture specific process information
 pub struct ArchProcess {
     addr_space: AddressSpace,
-    kernel_stack: KernelStack,
+    _kernel_stack: KernelStack,
     kernel_sp: VirtAddr,
 }
 
@@ -57,7 +56,7 @@ impl ArchProcess {
         let frame = unsafe { init_idle(kernel_sp) };
         Self {
             addr_space: AddressSpace::this(),
-            kernel_stack: stack,
+            _kernel_stack: stack,
             kernel_sp: frame,
         }
     }
@@ -70,7 +69,7 @@ impl ArchProcess {
         let frame = unsafe { init_kernel(kernel_sp, func) };
         Self {
             addr_space: AddressSpace::this(),
-            kernel_stack: stack,
+            _kernel_stack: stack,
             kernel_sp: frame,
         }
     }
@@ -130,7 +129,7 @@ global_asm!(r#"
 /// Finish switching from `prev` to `next` by restoring everything other than the general-purpose
 /// registers
 #[export_name = "finish"]
-extern "C" fn finish(prev: &ArchProcess, next: &ArchProcess) {
+extern "C" fn finish(_prev: &ArchProcess, next: &ArchProcess) {
     next.addr_space.switch();
 }
 

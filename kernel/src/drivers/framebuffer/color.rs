@@ -11,10 +11,6 @@ impl Color {
     pub const WHITE: Color = Color(0xFFFF_FFFF);
     pub const YELLOW: Color = Color(0xFFFF_FF00);
 
-    pub fn new(red: u8, green: u8, blue: u8) -> Self {
-        Self((red as u32) << 16 | (green as u32) << 8 | (blue as u32))
-    }
-
     pub fn value(self) -> u32 {
         self.0
     }

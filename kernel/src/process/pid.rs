@@ -15,11 +15,6 @@ impl ProcessId {
     pub fn unique() -> Self {
         Self(PID_ALLOCATOR.fetch_add(1, Ordering::AcqRel))
     }
-
-    /// Returns the PID as a u64
-    pub fn as_u64(&self) -> u64 {
-        self.0
-    }
 }
 
 impl Add<u64> for ProcessId {

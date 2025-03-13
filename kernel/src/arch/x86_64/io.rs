@@ -119,7 +119,8 @@ pub unsafe fn rdmsr(msr: u32) -> u64 {
 ///
 /// # Safety
 ///
-/// The caller must ensure this is a valid MSR
+/// The caller must ensure this is a valid MSR\
+#[allow(dead_code)]
 pub unsafe fn wrmsr(msr: u32, value: u64) {
     let low = value as u32;
     let high = (value >> 32) as u32;

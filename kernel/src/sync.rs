@@ -8,10 +8,7 @@ pub struct IrqGuard {
 impl IrqGuard {
     pub fn new() -> Self {
         let locked = interrupts::are_interrupts_enabled();
-
-        unsafe {
-            interrupts::disable_interrupts();
-        }
+        interrupts::disable_interrupts();
 
         Self { locked }
     }
@@ -20,9 +17,7 @@ impl IrqGuard {
 impl Drop for IrqGuard {
     fn drop(&mut self) {
         if self.locked {
-            unsafe {
-                interrupts::enable_interrupts();
-            }
+            interrupts::enable_interrupts();
         }
     }
 }
@@ -53,9 +48,7 @@ impl<T: ?Sized> Drop for MutexGuard<'_, T> {
         }
 
         if self.irq_lock {
-            unsafe {
-                interrupts::enable_interrupts();
-            }
+            interrupts::enable_interrupts();
         }
     }
 }
@@ -81,17 +74,11 @@ impl<T> Mutex<T> {
     pub fn lock_irq(&self) -> MutexGuard<T> {
         let irq_lock = interrupts::are_interrupts_enabled();
 
-        unsafe {
-            interrupts::disable_interrupts();
-        }
+        interrupts::disable_interrupts();
 
         MutexGuard {
             guard: core::mem::ManuallyDrop::new(self.inner.lock()),
             irq_lock,
         }
-    }
-
-    pub unsafe fn force_unlock(&self) {
-        self.inner.force_unlock();
     }
 }

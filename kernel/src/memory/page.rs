@@ -1,10 +1,10 @@
 //! Abstractions around virtual memory pages.
 
+use core::fmt;
 use core::marker::PhantomData;
 use core::ops::{Add, AddAssign, Sub, SubAssign};
-use core::{fmt, usize};
 
-use super::addr::{AddrError, VirtAddr};
+use super::addr::VirtAddr;
 
 /// Trait for abstracting around page sizes
 pub trait PageSize: Copy + Eq + PartialOrd + Ord {
@@ -48,35 +48,6 @@ pub struct Page<S: PageSize = Size4K> {
 }
 
 impl<S: PageSize> Page<S> {
-    /// The page size in bytes.
-    pub const SIZE: usize = S::SIZE;
-
-    /// Returns the page that starts at the given virtual address.
-    ///
-    /// # Errors
-    ///
-    /// Returns [AddrError::NotAligned] if the address is not correctly aligned.
-    pub fn from_start(addr: VirtAddr) -> Result<Self, AddrError> {
-        if !addr.is_aligned(S::SIZE) {
-            return Err(AddrError::NotAligned);
-        }
-
-        // Safety: The start address is aligned
-        Ok(unsafe { Self::from_start_unchecked(addr) })
-    }
-
-    /// Returns the page that starts at the given virtual address with no alignment checking.
-    ///
-    /// # Safety
-    ///
-    /// `addr` must be properly aligned to the page size.
-    pub unsafe fn from_start_unchecked(start_addr: VirtAddr) -> Self {
-        Page {
-            start_addr,
-            size: PhantomData,
-        }
-    }
-
     /// Returns the page that contains the given virtual address.
     pub fn containing_addr(addr: VirtAddr) -> Self {
         Page {
@@ -88,21 +59,6 @@ impl<S: PageSize> Page<S> {
     /// Returns the start address of the page.
     pub fn start_addr(&self) -> VirtAddr {
         self.start_addr
-    }
-
-    /// Returns the page size.
-    pub fn size(&self) -> usize {
-        S::SIZE
-    }
-
-    /// Returns a range of pages.
-    pub fn range(start: Self, end: Self) -> PageRange<S> {
-        PageRange { start, end }
-    }
-
-    /// Returns a range of pages, inclusive.
-    pub fn range_inclusive(start: Self, end: Self) -> PageRangeInclusive<S> {
-        PageRangeInclusive { start, end }
     }
 }
 
@@ -160,27 +116,6 @@ pub struct PageRange<S: PageSize = Size4K> {
     pub end: Page<S>,
 }
 
-impl<S: PageSize> PageRange<S> {
-    /// Returns whether this range contains no pages.
-    pub fn is_empty(&self) -> bool {
-        self.start >= self.end
-    }
-
-    /// Returns the number of pages in the range.
-    pub fn len(&self) -> usize {
-        if !self.is_empty() {
-            self.end - self.start
-        } else {
-            0
-        }
-    }
-
-    /// Returns the size of the range in bytes.
-    pub fn size(&self) -> usize {
-        S::SIZE * self.len()
-    }
-}
-
 impl<S: PageSize> Iterator for PageRange<S> {
     type Item = Page<S>;
 
@@ -201,27 +136,6 @@ impl<S: PageSize> Iterator for PageRange<S> {
 pub struct PageRangeInclusive<S: PageSize = Size4K> {
     pub start: Page<S>,
     pub end: Page<S>,
-}
-
-impl<S: PageSize> PageRangeInclusive<S> {
-    /// Returns whether this range contains no pages.
-    pub fn is_empty(&self) -> bool {
-        self.start >= self.end
-    }
-
-    /// Returns the number of pages in the range.
-    pub fn len(&self) -> usize {
-        if !self.is_empty() {
-            self.end - self.start + 1
-        } else {
-            0
-        }
-    }
-
-    /// Returns the size of the range in bytes.
-    pub fn size(&self) -> usize {
-        S::SIZE * self.len()
-    }
 }
 
 impl<S: PageSize> Iterator for PageRangeInclusive<S> {

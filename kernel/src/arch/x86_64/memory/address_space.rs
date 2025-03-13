@@ -2,13 +2,13 @@
 
 use alloc::alloc::AllocError;
 use core::arch::asm;
-use core::mem::{self, MaybeUninit};
+use core::mem::MaybeUninit;
 
 use super::active_level_4_table;
-use super::page_table::{self, FrameError, PageTable, PageTableFlags};
+use super::page_table::{FrameError, PageTable, PageTableFlags};
 use crate::memory::addr::{PhysAddr, VirtAddr};
 use crate::memory::frame::PhysFrame;
-use crate::memory::frame_allocator::{self, get_frame_allocator, FrameAllocator};
+use crate::memory::frame_allocator::{get_frame_allocator, FrameAllocator};
 use crate::memory::page::{Page, Size4K};
 
 /// Error returned if page mapping failed.
@@ -17,11 +17,13 @@ pub enum MapError {
     /// Failed to allocate space for mapping.
     AllocationFailed,
     /// Attempted to map a page that's already mapped to a frame.
+    #[allow(dead_code)]
     PageAlreadyMapped(PhysFrame),
 }
 
 /// Error returned if unmapping a page failed.
 #[derive(Debug)]
+#[allow(dead_code)]
 pub enum UnmapError {
     /// Attempted to unmap a huge page.
     HugePage,
@@ -43,6 +45,7 @@ impl AddressSpace {
     /// # Error
     ///
     /// Returns [AllocError] if we failed to allocate space for the new address space's page tables.
+    #[allow(dead_code)]
     pub fn new() -> Result<Self, AllocError> {
         let frame: PhysFrame<Size4K> = get_frame_allocator().allocate_frame().ok_or(AllocError)?;
         let mut page_table = PageTable::default();
@@ -194,6 +197,7 @@ impl AddressSpace {
         Ok(entry.frame().unwrap())
     }
 
+    #[allow(dead_code)]
     pub fn unmap_page(&mut self, page: Page) -> Result<(), UnmapError> {
         let indicies = [
             page.start_addr().p4_index(),

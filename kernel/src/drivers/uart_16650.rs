@@ -132,13 +132,6 @@ impl SerialPort<Initialized> {
         }
     }
 
-    /// Read a byte off the serial port
-    fn read_byte(&self) -> u8 {
-        self.wait_for_status(LineStatus::DATA_READY);
-        // Safety: `TRANSMIT_RECIEVE` is a valid register and the line has data to be read.
-        unsafe { self.read_register(TRANSMIT_RECIEVE) }
-    }
-
     /// Get the line status of the port
     fn get_line_status(&self) -> LineStatus {
         // Safety: LINE_STATUS is a valid register
@@ -190,6 +183,6 @@ pub macro serial_println {
 #[doc(hidden)]
 pub fn serial_print_internal(args: fmt::Arguments) {
     if let Some(c) = COM_1.get() {
-        c.lock_irq().write_fmt(args);
+        c.lock_irq().write_fmt(args).unwrap();
     }
 }

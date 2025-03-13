@@ -45,6 +45,7 @@ pub unsafe trait FrameAllocator<S: PageSize> {
     /// # Safety
     ///
     /// The caller must ensure that the passed frame is unused.
+    #[allow(dead_code)]
     unsafe fn deallocate_frame(&self, frame: PhysFrame<S>);
 }
 

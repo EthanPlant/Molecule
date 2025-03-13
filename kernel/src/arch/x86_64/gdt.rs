@@ -50,6 +50,7 @@ bitflags::bitflags! {
 #[derive(Copy, Clone)]
 struct GdtAccessFlags;
 
+#[allow(dead_code)]
 impl GdtAccessFlags {
     /// This flag is set automatically by the CPU if the segment is accessed.
     const ACCESSED: u8 = 1 << 0;
@@ -143,27 +144,27 @@ pub fn init() {
     unsafe {
         load_gdt(&gdt_descriptor);
 
-        set_cs(SegmentSelector::new(
+        set_cs(&SegmentSelector::new(
             GDT_KERNEL_CODE,
             PrivilegeLevel::Kernel,
         ));
-        set_ds(SegmentSelector::new(
+        set_ds(&SegmentSelector::new(
             GDT_KERNEL_DATA,
             PrivilegeLevel::Kernel,
         ));
-        set_es(SegmentSelector::new(
+        set_es(&SegmentSelector::new(
             GDT_KERNEL_DATA,
             PrivilegeLevel::Kernel,
         ));
-        set_fs(SegmentSelector::new(
+        set_fs(&SegmentSelector::new(
             GDT_KERNEL_DATA,
             PrivilegeLevel::Kernel,
         ));
-        set_gs(SegmentSelector::new(
+        set_gs(&SegmentSelector::new(
             GDT_KERNEL_DATA,
             PrivilegeLevel::Kernel,
         ));
-        set_ss(SegmentSelector::new(
+        set_ss(&SegmentSelector::new(
             GDT_KERNEL_DATA,
             PrivilegeLevel::Kernel,
         ));
@@ -183,7 +184,7 @@ unsafe fn load_gdt(descriptor: &GdtDescriptor) {
 ///
 /// # Safety
 /// `selector` must point to a GDT entry with the correct privilege level.
-unsafe fn set_cs(selector: SegmentSelector) {
+unsafe fn set_cs(selector: &SegmentSelector) {
     asm!(
         "push {selector}",
         "lea {tmp}, [rip + 2f]",
@@ -199,7 +200,7 @@ unsafe fn set_cs(selector: SegmentSelector) {
 ///
 /// # Safety
 /// `selector` must point to a GDT entry with the correct privilege level
-unsafe fn set_ds(selector: SegmentSelector) {
+unsafe fn set_ds(selector: &SegmentSelector) {
     asm!("mov ds, {0:x}", in(reg) selector.0)
 }
 
@@ -207,7 +208,7 @@ unsafe fn set_ds(selector: SegmentSelector) {
 ///
 /// # Safety
 /// `selector` must point to a GDT entry with the correct privilege level
-unsafe fn set_es(selector: SegmentSelector) {
+unsafe fn set_es(selector: &SegmentSelector) {
     asm!("mov es, {0:x}", in(reg) selector.0)
 }
 
@@ -215,7 +216,7 @@ unsafe fn set_es(selector: SegmentSelector) {
 ///
 /// # Safety
 /// `selector` must point to a GDT entry with the correct privilege level
-unsafe fn set_fs(selector: SegmentSelector) {
+unsafe fn set_fs(selector: &SegmentSelector) {
     asm!("mov fs, {0:x}", in(reg) selector.0)
 }
 
@@ -223,7 +224,7 @@ unsafe fn set_fs(selector: SegmentSelector) {
 ///
 /// # Safety
 /// `selector` must point to a GDT entry with the correct privilege level
-unsafe fn set_gs(selector: SegmentSelector) {
+unsafe fn set_gs(selector: &SegmentSelector) {
     asm!("mov gs, {0:x}", in(reg) selector.0)
 }
 
@@ -231,6 +232,6 @@ unsafe fn set_gs(selector: SegmentSelector) {
 ///
 /// # Safety
 /// `selector` must point to a GDT entry with the correct privilege level
-unsafe fn set_ss(selector: SegmentSelector) {
+unsafe fn set_ss(selector: &SegmentSelector) {
     asm!("mov ss, {0:x}", in(reg) selector.0)
 }

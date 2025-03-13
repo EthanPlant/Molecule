@@ -6,7 +6,6 @@ use spin::Once;
 
 use super::pid::ProcessId;
 use super::Process;
-use crate::arch;
 use crate::sync::{IrqGuard, Mutex, MutexGuard};
 
 static SCHEDULER: Once<Mutex<Scheduler>> = Once::new();
@@ -49,7 +48,7 @@ impl Scheduler {
 
     /// Remove a process from the scheduler
     pub fn remove_process(&mut self, pid: ProcessId) {
-        if let Some(proc) = self.processes.get(&pid) {
+        if self.processes.contains_key(&pid) {
             self.processes.remove(&pid);
         }
     }
@@ -77,12 +76,7 @@ pub fn tick() {
         (prev, next)
     };
     core::mem::drop(guard);
-    unsafe {
-        arch::process::switch_process(
-            &prev.arch_process as *const _,
-            &next.arch_process as *const _,
-        );
-    }
+    prev.switch(&next);
 }
 
 pub fn init() {

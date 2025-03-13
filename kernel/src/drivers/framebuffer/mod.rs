@@ -15,7 +15,7 @@ pub mod console;
 static FRAMEBUFFER: Once<Mutex<FramebufferInfo>> = Once::new();
 
 /// In-memory representation of a linear framebuffer
-struct FramebufferInfo {
+pub struct FramebufferInfo {
     addr: AtomicPtr<u32>,
     width: usize,
     height: usize,
@@ -85,6 +85,7 @@ pub fn init(framebuffer: &limine::response::FramebufferResponse) {
         .expect("Attempting to get framebuffer from response");
 
     FRAMEBUFFER.call_once(|| Mutex::new(FramebufferInfo::new(&fb)));
+    self::framebuffer().clear_screen(Color::BLACK);
 
     console::init();
 }

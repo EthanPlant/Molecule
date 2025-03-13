@@ -1,6 +1,6 @@
 //! Abstractions around a framebuffer console for printing text.
 
-use alloc::vec::{self, Vec};
+use alloc::vec::Vec;
 use core::fmt::{self, Write};
 
 use spin::Once;
@@ -250,5 +250,6 @@ pub fn print_internal(args: fmt::Arguments) {
         .get()
         .expect("Attempted to write to console before it was initialized")
         .lock_irq()
-        .write_fmt(args);
+        .write_fmt(args)
+        .unwrap();
 }

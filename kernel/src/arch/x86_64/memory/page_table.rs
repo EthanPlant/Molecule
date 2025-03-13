@@ -120,11 +120,6 @@ impl PageTableEntry {
         assert!(!flags.contains(PageTableFlags::HUGE_PAGE));
         self.set(frame.start_addr(), flags);
     }
-
-    /// Sets the flags of the entry.
-    pub fn set_flags(&mut self, flags: PageTableFlags) {
-        self.entry = self.addr().as_usize() as u64 | flags.bits()
-    }
 }
 
 impl fmt::Debug for PageTableEntry {
@@ -157,28 +152,6 @@ impl PageTable {
         Self {
             entries: [EMPTY; ENTRY_COUNT],
         }
-    }
-
-    /// Clears all entries
-    pub fn zero(&mut self) {
-        for entry in self.iter_mut() {
-            entry.set_unused();
-        }
-    }
-
-    /// Returns an iterator over the entries of the page table.
-    pub fn iter(&self) -> impl Iterator<Item = &PageTableEntry> {
-        self.entries.iter()
-    }
-
-    /// Returns an iterator that allows modifying the entries of the page table.
-    pub fn iter_mut(&mut self) -> impl Iterator<Item = &mut PageTableEntry> {
-        self.entries.iter_mut()
-    }
-
-    /// Checks if the page table is empty
-    pub fn is_empty(&self) -> bool {
-        self.iter().all(|entry| entry.is_unused())
     }
 }
 
@@ -243,6 +216,7 @@ impl PageTableIndex {
 }
 
 /// A 12-bit offset into a 4 KiB page. Guaranteed to only ever contain 0..4096
+#[derive(Clone, Copy)]
 pub struct PageOffset(u16);
 
 impl PageOffset {

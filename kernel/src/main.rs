@@ -14,24 +14,19 @@
 #![allow(internal_features)]
 
 //! The Molecule kernel.
-
-use alloc::sync::Arc;
 use core::arch::asm;
 
 use arch::get_cpu_id;
 use arch::interrupts::apic::set_bsp_ready;
-use arch::interrupts::{self, enable_interrupts};
-use drivers::framebuffer::console::{print, println};
-use drivers::framebuffer::{self, framebuffer};
+use arch::interrupts::enable_interrupts;
 use limine::request::{
     FramebufferRequest, HhdmRequest, MemoryMapRequest, RequestsEndMarker, RequestsStartMarker,
     RsdpRequest, SmpRequest,
 };
 use limine::BaseRevision;
 use linked_list_allocator::LockedHeap;
-use process::scheduler::{self, get_scheduler, Scheduler};
+use process::scheduler::{self, get_scheduler};
 use process::Process;
-use psf::PsfFont;
 
 extern crate alloc;
 

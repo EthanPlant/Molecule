@@ -1,12 +1,11 @@
 //! Handling for the Advanced Programmable Interrupt Controller (APIC)
 
-use core::sync::atomic::{AtomicBool, AtomicU64, AtomicUsize, Ordering};
+use core::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 
 use raw_cpuid::{CpuId, FeatureInfo};
 use spin::Once;
 
-use super::idt::{self, IDT};
-use super::{allocate_vector, InterruptStackFrame};
+use super::{allocate_vector, idt, InterruptStackFrame};
 use crate::acpi::hpet;
 use crate::acpi::madt::{IO_APICS, OVERRIDES};
 use crate::arch::io;
@@ -117,7 +116,7 @@ impl LocalApic {
             self.write_register(APIC_TIMER_DIV, 0x03); // Tell APIC timer to use divider 16
             self.write_register(APIC_TIMER_INIT_COUNT, 0xffff_ffff); // Set initial count to -1
             hpet::sleep(10);
-            self.write_register(APIC_LVT_TIMER, (1 << 16)); // Stop the timer.
+            self.write_register(APIC_LVT_TIMER, 1 << 16); // Stop the timer.
             let ticks = 0xffff_ffff - self.read_register(APIC_TIMER_COUNT);
 
             log::debug!("Calibrated timer ticks {}", ticks);

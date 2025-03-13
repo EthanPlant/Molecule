@@ -79,16 +79,6 @@ impl IdtEntryAttributes {
     const fn default() -> Self {
         Self::new(PrivilegeLevel::Kernel, GateType::Interrupt)
     }
-
-    /// Get the gate type of this entry.
-    fn gate_type(&self) -> GateType {
-        (self.0 & 0x0F).into()
-    }
-
-    /// Get the privilege level of this entry.
-    fn privilege(&self) -> PrivilegeLevel {
-        ((self.0 >> 5) & 0x03).into()
-    }
 }
 
 /// In memory representation of an IDT entry.
