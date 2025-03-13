@@ -1,6 +1,6 @@
 //! x86_64 interrupt handling
 
-pub(super) mod apic;
+pub mod apic;
 mod exception;
 pub(super) mod idt;
 

@@ -18,6 +18,8 @@
 use alloc::sync::Arc;
 use core::arch::asm;
 
+use arch::get_cpu_id;
+use arch::interrupts::apic::set_bsp_ready;
 use arch::interrupts::{self, enable_interrupts};
 use drivers::framebuffer::console::{print, println};
 use drivers::framebuffer::{self, framebuffer};
@@ -41,7 +43,6 @@ mod memory;
 mod process;
 mod psf;
 mod sync;
-mod utils;
 
 /// Sets the base revision to the latest revision supported by the crate.
 /// See specification for further info.
@@ -89,6 +90,9 @@ pub fn kmain() -> ! {
 
     scheduler::init();
 
+    #[cfg(target_arch = "x86_64")]
+    set_bsp_ready();
+
     let p1 = Process::new_kernel(kernel_process);
 
     get_scheduler().add_process(p1);
@@ -99,11 +103,23 @@ pub fn kmain() -> ! {
 }
 
 pub fn ap_kmain(ap: u32) -> ! {
+    log::trace!("CPU {ap} initialized");
+
+    get_scheduler().add_process(Process::new_kernel(kernel_process));
+
+    enable_interrupts();
+
     hcf();
 }
 
 pub fn kernel_process() -> ! {
-    log::trace!("Hi from a process!");
+    let this = get_scheduler().get_current_process();
+    log::trace!(
+        "Hi from {:?}. I'm running on CPU {}",
+        this.get_pid(),
+        get_cpu_id()
+    );
+    get_scheduler().remove_process(this.get_pid());
     hcf();
 }
 

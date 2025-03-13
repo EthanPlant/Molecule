@@ -83,8 +83,6 @@ impl ArchProcess {
 /// `prev` and `const` must point to valid processes.
 pub unsafe fn switch_process(prev: *const ArchProcess, next: *const ArchProcess) {
     switch_asm(prev, next);
-
-    asm!("iretq");
 }
 
 extern "C" {

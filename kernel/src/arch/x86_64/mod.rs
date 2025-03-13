@@ -2,6 +2,8 @@
 //!
 //! This module contains all architecture specific code for the x86_64 (AMD64) ISA.
 
+use interrupts::apic::get_local_apic;
+
 mod gdt;
 mod init;
 pub mod interrupts;
@@ -9,6 +11,10 @@ pub mod io;
 mod memory;
 pub mod process;
 mod time;
+
+pub fn get_cpu_id() -> u32 {
+    get_local_apic().get_lapic_id() >> 24
+}
 
 /// Represents a privilege level.
 enum PrivilegeLevel {

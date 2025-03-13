@@ -19,6 +19,8 @@ const IA32_APIC_BASE: u32 = 0x1b;
 /// Vector to use for spurious interrupt.
 const APIC_SPURIOUS_VECTOR: u32 = 0xff;
 
+/// APIC ID Register
+const XAPIC_ID: u32 = 0x020;
 /// Task Priority Register (TPR). R/W. Bits 31:8 are reserved.
 const XAPIC_TPR: u32 = 0x080;
 /// End-Of-Interrupt (EOI) register. Write only. Writing 0 signals the end of an interrupt.
@@ -41,7 +43,7 @@ const APIC_TIMER_DIV: u32 = 0x3e0;
 const IOAPIC_VER: u32 = 1;
 
 /// Total count of CPUs in the system
-static CPU_COUNT: AtomicUsize = AtomicUsize::new(0);
+pub static CPU_COUNT: AtomicUsize = AtomicUsize::new(0);
 
 /// Global access to the LAPIC
 static LOCAL_APIC: Once<Mutex<LocalApic>> = Once::new();
@@ -101,7 +103,7 @@ impl LocalApic {
     /// # Safety
     ///
     /// Caller must ensure `self.addr` is a valid LAPIC address.
-    unsafe fn init(&self) {
+    pub unsafe fn init(&self) {
         self.write_register(XAPIC_TPR, 0x00); // Clear the TPR to enable all interrupts
         self.set_up_spurious();
         self.set_up_lvt_err();
@@ -135,6 +137,12 @@ impl LocalApic {
         unsafe {
             self.write_register(EOI, 0);
         }
+    }
+
+    /// Get the ID of this local APIC
+    pub fn get_lapic_id(&self) -> u32 {
+        // Safety: LAPIC is valid
+        unsafe { self.read_register(XAPIC_ID) }
     }
 
     /// Read from a LAPIC register.

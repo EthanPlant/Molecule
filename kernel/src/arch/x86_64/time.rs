@@ -1,11 +1,15 @@
 //! Timer handling
 
+use core::sync::atomic::{AtomicU8, Ordering};
+
 use super::interrupts::apic::ioapic_setup_irq;
 use super::interrupts::{allocate_vector, idt, InterruptStackFrame};
 use crate::arch::interrupts::apic::get_local_apic;
 use crate::process::scheduler;
 
 const TIMER_IRQ: u8 = 0;
+
+static TIMER_VEC: AtomicU8 = AtomicU8::new(0);
 
 extern "x86-interrupt" fn timer_handler(_stack: InterruptStackFrame) {
     get_local_apic().eoi();
@@ -15,8 +19,14 @@ extern "x86-interrupt" fn timer_handler(_stack: InterruptStackFrame) {
 /// Initialize the timer.
 pub fn init() {
     let vec = allocate_vector();
+    TIMER_VEC.store(vec, Ordering::Relaxed);
     idt::set_handler(vec as usize, timer_handler);
 
     get_local_apic().timer_calibrate(vec);
     ioapic_setup_irq(TIMER_IRQ, vec);
+}
+
+/// Initialize the timer for APs
+pub fn init_ap() {
+    get_local_apic().timer_calibrate(TIMER_VEC.load(Ordering::Relaxed));
 }
