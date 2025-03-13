@@ -13,7 +13,7 @@ $(call USER_VARIABLE,KARCH,x86_64)
 # Default user QEMU flags. These are appended to the QEMU command calls.
 $(call USER_VARIABLE,QEMUFLAGS,-m 4G -serial stdio -smp 2 -enable-kvm -cpu $(HOST))
 
-override IMAGE_NAME := template-$(KARCH)
+override IMAGE_NAME := molecule-$(KARCH)
 
 .PHONY: all
 all: $(IMAGE_NAME).iso
