@@ -9,7 +9,7 @@ use crate::arch::interrupts::apic;
 use crate::arch::interrupts::apic::{get_cpu_count, get_local_apic};
 use crate::arch::x86_64::interrupts::idt;
 use crate::arch::x86_64::memory::heap;
-use crate::arch::x86_64::{gdt, time};
+use crate::arch::x86_64::{gdt, simd, time};
 use crate::drivers::framebuffer;
 use crate::memory::addr::{VirtAddr, HHDM_OFFSET};
 use crate::{
@@ -40,6 +40,9 @@ extern "C" fn x86_64_molecule_main() -> ! {
 
     gdt::init();
     idt::init();
+
+    simd::init();
+    log::debug!("Init: SSE intialized");
 
     let mem_map_response = unsafe {
         MEM_MAP_REQUEST
@@ -93,6 +96,8 @@ extern "C" fn ap_init(cpu: &Cpu) -> ! {
 
     idt::init();
     log::info!("AP {ap_id}: IDT Initialized");
+
+    simd::init();
 
     while !apic::get_bsp_ready() {
         core::hint::spin_loop();
