@@ -60,6 +60,11 @@ impl LockedFrameAllocator {
         Self(Mutex::new(inner))
     }
 
+    /// Get the total amount of memory available to the frame allocator.
+    pub fn get_total_memory(&self) -> usize {
+        self.0.lock().size
+    }
+
     /// Allocate `bytes` returning the address of the allocation. Returns `None` if the allocation
     /// failed.
     pub fn alloc(&self, bytes: usize) -> Option<PhysAddr> {

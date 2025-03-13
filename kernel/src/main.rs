@@ -16,23 +16,23 @@
 //! The Molecule kernel.
 use core::arch::asm;
 
-use arch::get_cpu_id;
 use arch::interrupts::apic::set_bsp_ready;
 use arch::interrupts::enable_interrupts;
+use drivers::framebuffer::console::println;
 use limine::request::{
     FramebufferRequest, HhdmRequest, MemoryMapRequest, RequestsEndMarker, RequestsStartMarker,
     RsdpRequest, SmpRequest,
 };
 use limine::BaseRevision;
 use linked_list_allocator::LockedHeap;
-use process::scheduler::{self, get_scheduler};
-use process::Process;
-
+use memory::frame_allocator::get_frame_allocator;
+use process::scheduler;
 extern crate alloc;
 
 mod acpi;
 mod arch;
 mod drivers;
+mod fs;
 mod logger;
 mod memory;
 mod process;
@@ -85,12 +85,20 @@ pub fn kmain() -> ! {
 
     scheduler::init();
 
+    println!("Welcome to Molecule!");
+    println!(
+        "Kernel ver: {} (commit = {}), built for {}",
+        env!("CARGO_PKG_VERSION"),
+        env!("COMMIT"),
+        env!("TARGET")
+    );
+    println!(
+        "{} MiB free",
+        get_frame_allocator().get_total_memory() / 1024 / 1024
+    );
+
     #[cfg(target_arch = "x86_64")]
     set_bsp_ready();
-
-    let p1 = Process::new_kernel(kernel_process);
-
-    get_scheduler().add_process(p1);
 
     enable_interrupts();
 
@@ -99,22 +107,8 @@ pub fn kmain() -> ! {
 
 pub fn ap_kmain(ap: u32) -> ! {
     log::trace!("CPU {ap} initialized");
-
-    get_scheduler().add_process(Process::new_kernel(kernel_process));
-
     enable_interrupts();
 
-    hcf();
-}
-
-pub fn kernel_process() -> ! {
-    let this = get_scheduler().get_current_process();
-    log::trace!(
-        "Hi from {:?}. I'm running on CPU {}",
-        this.get_pid(),
-        get_cpu_id()
-    );
-    get_scheduler().remove_process(this.get_pid());
     hcf();
 }
 
