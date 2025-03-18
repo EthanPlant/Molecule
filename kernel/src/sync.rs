@@ -1,3 +1,5 @@
+use core::fmt::Debug;
+
 use crate::arch::interrupts;
 
 #[derive(Debug)]
@@ -80,5 +82,11 @@ impl<T> Mutex<T> {
             guard: core::mem::ManuallyDrop::new(self.inner.lock()),
             irq_lock,
         }
+    }
+}
+
+impl<T: Debug> Debug for Mutex<T> {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.debug_struct("Mutex").field("inner", &self.inner).finish()
     }
 }

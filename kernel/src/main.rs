@@ -5,6 +5,7 @@
 #![feature(ptr_internals)]
 #![feature(abi_x86_interrupt)]
 #![feature(maybe_uninit_slice)]
+#![feature(trait_upcasting)]
 #![no_std]
 #![no_main]
 #![deny(trivial_numeric_casts, unused_allocation)]
@@ -19,6 +20,8 @@ use core::arch::asm;
 use arch::interrupts::apic::set_bsp_ready;
 use arch::interrupts::enable_interrupts;
 use drivers::framebuffer::console::println;
+use fs::perm::AccessProfile;
+use fs::{vfs, Stat};
 use limine::request::{
     FramebufferRequest, HhdmRequest, MemoryMapRequest, RequestsEndMarker, RequestsStartMarker,
     RsdpRequest, SmpRequest,
@@ -84,6 +87,15 @@ pub fn kmain() -> ! {
     log::info!("Starting Molecule {}", env!("CARGO_PKG_VERSION"));
 
     scheduler::init();
+
+    fs::init();
+    let res = vfs::create_file(
+        vfs::ROOT.get().unwrap(),
+        "Test",
+        &AccessProfile::KERN_PROFILE,
+        Stat::new(),
+    );
+    log::debug!("Created file {:#?}", res);
 
     println!("Welcome to Molecule!");
     println!(

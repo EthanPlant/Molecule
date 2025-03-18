@@ -1,7 +1,8 @@
 //! The Virtual Filesystem (VFS) provides an abstraction layer on top of a filesystem. To manipulate
 //! files, the VFS should be used instead of calling the filesystems directly
 
-mod node;
+pub mod mountpoint;
+pub mod node;
 
 use alloc::string::{String, ToString};
 use alloc::sync::Arc;
@@ -10,10 +11,13 @@ use core::hash::Hash;
 
 use hashbrown::HashSet;
 use node::Node;
+use spin::Once;
 
 use super::perm::{AccessProfile, S_ISGID};
 use super::{FileLocation, FileType, Stat};
 use crate::sync::Mutex;
+
+pub static ROOT: Once<Arc<Entry>> = Once::new();
 
 /// Errors that can be returned from VFS operations
 #[derive(Debug)]
@@ -32,9 +36,10 @@ pub enum VfsError {
     FileDoesntExist,
 }
 
-type VfsResult<T> = Result<T, VfsError>;
+pub type VfsResult<T> = Result<T, VfsError>;
 
 /// A VFS entry, representing a directory entry cached in memory
+#[derive(Debug)]
 pub struct Entry {
     pub name: String,
     parent: Option<Arc<Entry>>,
@@ -43,6 +48,15 @@ pub struct Entry {
 }
 
 impl Entry {
+    pub fn new(node: Arc<Node>) -> Self {
+        Self {
+            name: String::new(),
+            parent: None,
+            children: Mutex::new(HashSet::new()),
+            node: Some(node),
+        }
+    }
+
     /// Returns a reference to the underlying node.
     ///
     /// # Errors
@@ -66,6 +80,7 @@ impl Entry {
 }
 
 /// A child of a VFS entry.
+#[derive(Debug)]
 struct EntryChild(Arc<Entry>);
 
 impl Borrow<str> for EntryChild {
@@ -121,6 +136,7 @@ pub fn create_file(
         ap.effective_gid()
     };
     stat.gid = gid;
+
     let parent_node = parent.node()?;
     let (inode, ops) = parent_node
         .ops
@@ -130,6 +146,7 @@ pub fn create_file(
         inode,
     };
     let node = node::get_or_insert(location, ops);
+
     let entry = Arc::new(Entry {
         name: name.to_string(),
         parent: Some(parent.clone()),
@@ -137,5 +154,5 @@ pub fn create_file(
         node: Some(node),
     });
     parent.children.lock().insert(EntryChild(entry.clone()));
-    Err(VfsError::ReadOnly)
+    Ok(entry)
 }

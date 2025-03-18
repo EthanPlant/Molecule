@@ -3,6 +3,7 @@
 use alloc::boxed::Box;
 use alloc::sync::Arc;
 use core::borrow::Borrow;
+use core::fmt::Debug;
 use core::hash::Hash;
 use core::ops;
 
@@ -17,12 +18,17 @@ use crate::sync::Mutex;
 static USED_NODES: Lazy<Mutex<HashSet<NodeEntry>>> = Lazy::new(|| Mutex::new(HashSet::new()));
 
 /// A filesystem node
+#[derive(Debug)]
 pub struct Node {
     location: FileLocation,
     pub ops: Box<dyn NodeOps>,
 }
 
 impl Node {
+    pub fn new(location: FileLocation, ops: Box<dyn NodeOps>) -> Self {
+        Self { location, ops }
+    }
+
     /// Get a reference to the node's location
     pub fn location(&self) -> &FileLocation {
         &self.location
@@ -52,6 +58,14 @@ impl Hash for NodeEntry {
     }
 }
 
+/// Insert a new node in cache
+pub fn insert(node: Node) -> Arc<Node> {
+    let mut used_nodes = USED_NODES.lock();
+    let node = Arc::new(node);
+    used_nodes.insert(NodeEntry(node.clone()));
+    node
+}
+
 /// Looks in the node cache for the node with the given location and returns it. If the node is not
 /// in the cache, it is created and inserted.
 pub(super) fn get_or_insert(location: FileLocation, ops: Box<dyn NodeOps>) -> Arc<Node> {
@@ -68,7 +82,7 @@ pub(super) fn get_or_insert(location: FileLocation, ops: Box<dyn NodeOps>) -> Ar
 }
 
 /// Filesystem node operations
-pub trait NodeOps: Send + Sync {
+pub trait NodeOps: Send + Sync + Debug {
     /// Get the status of the node
     fn get_stat(&self, loc: &FileLocation) -> VfsResult<Stat>;
 

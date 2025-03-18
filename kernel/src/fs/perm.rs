@@ -3,15 +3,15 @@
 use super::{Mode, Stat};
 
 /// The root user ID
-const ROOT_ID: Uid = Uid(0);
+pub const ROOT_ID: Uid = Uid(0);
 /// The root group ID
-const ROOT_GID: Gid = Gid(0);
+pub const ROOT_GID: Gid = Gid(0);
 
 /// Type representing a user ID
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct Uid(u16);
 /// Type representing a group ID
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct Gid(u16);
 
 /// User: Write
@@ -43,6 +43,15 @@ pub struct AccessProfile {
 }
 
 impl AccessProfile {
+    pub const KERN_PROFILE: Self = Self {
+        uid: ROOT_ID,
+        gid: ROOT_GID,
+        euid: ROOT_ID,
+        egid: ROOT_GID,
+        suid: ROOT_ID,
+        sgid: ROOT_GID,
+    };
+
     /// Get the effective UID of the agent
     pub fn effective_uid(&self) -> Uid {
         self.euid
