@@ -2,4 +2,4 @@
 /ovmf
 *.iso
 *.hdd
-sysroot/initramfs
+initramfs

@@ -1,9 +1,6 @@
 //! The Virtual Filesystem (VFS) provides an abstraction layer on top of a filesystem. To manipulate
 //! files, the VFS should be used instead of calling the filesystems directly
 
-pub mod mountpoint;
-pub mod node;
-
 use alloc::string::{String, ToString};
 use alloc::sync::Arc;
 use core::borrow::Borrow;
@@ -11,11 +8,17 @@ use core::hash::Hash;
 
 use hashbrown::HashSet;
 use node::Node;
+use resolver::{resolve_path, ResolutionSettings, Resolved};
 use spin::Once;
 
+use super::path::Path;
 use super::perm::{AccessProfile, S_ISGID};
 use super::{FileLocation, FileType, Stat};
 use crate::sync::Mutex;
+
+pub mod mountpoint;
+pub mod node;
+pub mod resolver;
 
 pub static ROOT: Once<Arc<Entry>> = Once::new();
 
@@ -34,6 +37,10 @@ pub enum VfsError {
     FileAlreadyExists,
     /// Attempted to access a non-existent file
     FileDoesntExist,
+    /// Path is too long
+    NameTooLong,
+    /// Encountered too many symbolic links
+    TooManyLinks,
 }
 
 pub type VfsResult<T> = Result<T, VfsError>;
@@ -77,15 +84,19 @@ impl Entry {
         let node = self.node()?;
         node.ops.get_stat(node.location())
     }
+
+    pub fn get_type(&self) -> FileType {
+        self.status().unwrap().mode.file_type()
+    }
 }
 
 /// A child of a VFS entry.
 #[derive(Debug)]
 struct EntryChild(Arc<Entry>);
 
-impl Borrow<str> for EntryChild {
-    fn borrow(&self) -> &str {
-        &self.0.name
+impl Borrow<[u8]> for EntryChild {
+    fn borrow(&self) -> &[u8] {
+        &self.0.name.as_bytes()
     }
 }
 
@@ -101,6 +112,26 @@ impl Hash for EntryChild {
     fn hash<H: core::hash::Hasher>(&self, state: &mut H) {
         self.0.name.hash(state);
     }
+}
+
+/// Returns the file at a given path.
+pub fn get_file_from_path(
+    path: &Path,
+    resolution_settings: &ResolutionSettings,
+) -> VfsResult<Arc<Entry>> {
+    get_file_from_path_opt(path, resolution_settings)?.ok_or_else(|| VfsError::FileDoesntExist)
+}
+
+/// Returns the file at a given path, but returns `None` if the file doesn't exist.
+pub fn get_file_from_path_opt(
+    path: &Path,
+    resolution_settings: &ResolutionSettings,
+) -> VfsResult<Option<Arc<Entry>>> {
+    let file = match resolve_path(path, resolution_settings)? {
+        Resolved::Found(file) => Some(file),
+        _ => None,
+    };
+    Ok(file)
 }
 
 /// Create a file, add it to the VFS, then return it.
@@ -155,4 +186,8 @@ pub fn create_file(
     });
     parent.children.lock().insert(EntryChild(entry.clone()));
     Ok(entry)
+}
+
+pub fn root() -> Arc<Entry> {
+    ROOT.get().expect("VFS root not initialized").clone()
 }

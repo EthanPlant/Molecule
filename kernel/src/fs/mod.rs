@@ -10,6 +10,8 @@ use perm::{Gid, Uid, ROOT_GID, ROOT_ID};
 use vfs::mountpoint::{self, MountPoint};
 use vfs::node::NodeOps;
 
+pub mod initramfs;
+mod path;
 pub mod perm;
 mod tmpfs;
 pub mod vfs;
@@ -182,7 +184,7 @@ impl Stat {
 }
 
 /// An entry in a directory
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 struct DirEntry {
     inode: Inode,
     entry_type: FileType,

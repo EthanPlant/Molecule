@@ -23,7 +23,8 @@ use drivers::framebuffer::console::println;
 use fs::perm::AccessProfile;
 use fs::{vfs, Stat};
 use limine::request::{
-    FramebufferRequest, HhdmRequest, MemoryMapRequest, ModuleRequest, RequestsEndMarker, RequestsStartMarker, RsdpRequest, SmpRequest
+    FramebufferRequest, HhdmRequest, MemoryMapRequest, ModuleRequest, RequestsEndMarker,
+    RequestsStartMarker, RsdpRequest, SmpRequest,
 };
 use limine::BaseRevision;
 use linked_list_allocator::LockedHeap;
@@ -92,9 +93,22 @@ pub fn kmain() -> ! {
     scheduler::init();
 
     fs::init();
-    let modules = MODULE_REQUEST.get_response().expect("Failed to retrieve modules from Limine").modules();
-    for module in modules {
-        log::debug!("{:?}", core::str::from_utf8(module.path()));
+    let modules = MODULE_REQUEST
+        .get_response()
+        .expect("Failed to retrieve modules from Limine")
+        .modules();
+    let mut initramfs = None;
+    for &module in modules {
+        let path_str = core::str::from_utf8(module.path());
+        if let Ok(path) = path_str {
+            if path == "/boot/initramfs" {
+                initramfs = Some(module);
+            }
+        }
+    }
+    if let Some(initramfs) = initramfs {
+        log::info!("Initialzing initramfs");
+        fs::initramfs::load(initramfs);
     }
 
     println!("Welcome to Molecule!");

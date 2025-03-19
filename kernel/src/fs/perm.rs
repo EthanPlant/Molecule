@@ -10,9 +10,21 @@ pub const ROOT_GID: Gid = Gid(0);
 /// Type representing a user ID
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct Uid(u16);
+
+impl Uid {
+    pub fn new(id: u16) -> Self {
+        Self(id)
+    }
+}
 /// Type representing a group ID
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct Gid(u16);
+
+impl Gid {
+    pub fn new(id: u16) -> Self {
+        Self(id)
+    }
+}
 
 /// User: Write
 const S_IWUSR: u32 = 0o0200;
@@ -70,6 +82,11 @@ impl AccessProfile {
     /// Checks whether the agent can modify entries in a directory with the given status
     pub fn can_write_dir(&self, stat: &Stat) -> bool {
         self.can_write_file(stat) && self.can_execute_file(stat)
+    }
+
+    /// Checks whtehr the agent can access files of a directory with given status
+    pub fn can_search_directory(&self, stat: &Stat) -> bool {
+        self.can_execute_file(stat)
     }
 
     /// Checks whether the agent can execute a file with given status.

@@ -11,7 +11,7 @@ use hashbrown::HashSet;
 use spin::Lazy;
 
 use super::{VfsError, VfsResult};
-use crate::fs::{FileLocation, Inode, Stat};
+use crate::fs::{DirEntry, FileLocation, Inode, Stat};
 use crate::sync::Mutex;
 
 /// The list of nodes currently in use.
@@ -97,4 +97,10 @@ pub trait NodeOps: Send + Sync + Debug {
         name: &str,
         stat: Stat,
     ) -> VfsResult<(Inode, Box<dyn NodeOps>)>;
+
+    fn entry_by_name<'a>(
+        &self,
+        loc: &FileLocation,
+        name: &'a [u8],
+    ) -> VfsResult<Option<(DirEntry, Box<dyn NodeOps>)>>;
 }

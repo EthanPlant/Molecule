@@ -177,13 +177,13 @@ kernel:
 
 .PHONY: sysroot
 sysroot:
-	rm -f $(SYSROOT)/initramfs
-	find $(SYSROOT) | cpio -o > $(SYSROOT)/initramfs
+	rm -f initramfs
+	find $(SYSROOT) | cpio -o > initramfs
 
 $(IMAGE_NAME).iso: limine/limine kernel sysroot
 	rm -rf iso_root
 	mkdir -p iso_root/boot
-	cp -v $(SYSROOT)/initramfs iso_root/boot/initramfs
+	cp -v initramfs iso_root/boot/initramfs
 	cp -v kernel/kernel iso_root/boot/
 	mkdir -p iso_root/boot/limine
 	cp -v limine.conf iso_root/boot/limine/

@@ -213,6 +213,27 @@ impl NodeOps for Node {
         }
         Ok((inode, Box::new(node)))
     }
+
+    fn entry_by_name<'a>(
+        &self,
+        loc: &FileLocation,
+        name: &'a [u8],
+    ) -> VfsResult<Option<(DirEntry, Box<dyn NodeOps>)>> {
+        let inner = self.0.lock();
+        let NodeContent::Directory(entries) = &inner.content else {
+            return Err(VfsError::NotADirectory);
+        };
+        let Some(off) = entries
+            .binary_search_by(|ent| ent.name.as_bytes().cmp(name))
+            .ok()
+        else {
+            return Ok(None);
+        };
+        let ent = entries[off].clone();
+        let fs = loc.get_filesystem().unwrap();
+        let ops = fs.node_from_inode(ent.inode).unwrap();
+        Ok(Some((ent, ops)))
+    }
 }
 
 /// The content of a [Node]
