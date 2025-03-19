@@ -23,8 +23,7 @@ use drivers::framebuffer::console::println;
 use fs::perm::AccessProfile;
 use fs::{vfs, Stat};
 use limine::request::{
-    FramebufferRequest, HhdmRequest, MemoryMapRequest, RequestsEndMarker, RequestsStartMarker,
-    RsdpRequest, SmpRequest,
+    FramebufferRequest, HhdmRequest, MemoryMapRequest, ModuleRequest, RequestsEndMarker, RequestsStartMarker, RsdpRequest, SmpRequest
 };
 use limine::BaseRevision;
 use linked_list_allocator::LockedHeap;
@@ -70,6 +69,10 @@ pub static RSDP_REQUEST: RsdpRequest = RsdpRequest::new();
 #[link_section = ".requests"]
 pub static mut SMP_REQUEST: SmpRequest = SmpRequest::new();
 
+#[used]
+#[link_section = ".requests"]
+static MODULE_REQUEST: ModuleRequest = ModuleRequest::new();
+
 /// Define the stand and end markers for Limine requests.
 #[used]
 #[link_section = ".requests_start_marker"]
@@ -89,13 +92,10 @@ pub fn kmain() -> ! {
     scheduler::init();
 
     fs::init();
-    let res = vfs::create_file(
-        vfs::ROOT.get().unwrap(),
-        "Test",
-        &AccessProfile::KERN_PROFILE,
-        Stat::new(),
-    );
-    log::debug!("Created file {:#?}", res);
+    let modules = MODULE_REQUEST.get_response().expect("Failed to retrieve modules from Limine").modules();
+    for module in modules {
+        log::debug!("{:?}", core::str::from_utf8(module.path()));
+    }
 
     println!("Welcome to Molecule!");
     println!(
