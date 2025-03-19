@@ -1,5 +1,8 @@
 //! Abstraction around file paths
 
+use core::fmt::Display;
+use core::str;
+
 use super::vfs::{VfsError, VfsResult};
 
 /// Maximum path size
@@ -85,6 +88,12 @@ impl Path {
             Component::RootDir => None,
             _ => Some(comps.as_path()),
         })
+    }
+}
+
+impl Display for Path {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.write_str(str::from_utf8(&self.0).unwrap())
     }
 }
 

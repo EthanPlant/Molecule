@@ -11,7 +11,7 @@ use vfs::mountpoint::{self, MountPoint};
 use vfs::node::NodeOps;
 
 pub mod initramfs;
-mod path;
+pub mod path;
 pub mod perm;
 mod tmpfs;
 pub mod vfs;

@@ -98,6 +98,10 @@ pub trait NodeOps: Send + Sync + Debug {
         stat: Stat,
     ) -> VfsResult<(Inode, Box<dyn NodeOps>)>;
 
+    fn write_content(&self, loc: &FileLocation, off: usize, buf: &[u8]) -> VfsResult<usize>;
+
+    fn read_content(&self, loc: &FileLocation, off: usize, buf: &mut [u8]) -> VfsResult<usize>;
+
     fn entry_by_name<'a>(
         &self,
         loc: &FileLocation,

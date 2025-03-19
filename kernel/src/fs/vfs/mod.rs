@@ -3,6 +3,8 @@
 
 use alloc::string::{String, ToString};
 use alloc::sync::Arc;
+use alloc::vec;
+use alloc::vec::Vec;
 use core::borrow::Borrow;
 use core::hash::Hash;
 
@@ -41,6 +43,14 @@ pub enum VfsError {
     NameTooLong,
     /// Encountered too many symbolic links
     TooManyLinks,
+    /// Attempted to read from or write to an offset that is too large for the file
+    OffsetTooLarge,
+    /// File write overflowed a file
+    Overflow,
+    /// Attempted to read content from or write content to a directory
+    IsADirectory,
+    /// Attempted to perform an operation on an invalid file type
+    InvalidFileType,
 }
 
 pub type VfsResult<T> = Result<T, VfsError>;
@@ -72,7 +82,7 @@ impl Entry {
     pub fn node(&self) -> VfsResult<&Arc<Node>> {
         self.node
             .as_ref()
-            .map_or_else(|| Err(VfsError::FileDoesntExist), |val| Ok(val))
+            .map_or_else(|| Err(VfsError::FileDoesntExist), Ok)
     }
 
     /// Get the status of the underlying node
@@ -83,6 +93,43 @@ impl Entry {
     pub fn status(&self) -> VfsResult<Stat> {
         let node = self.node()?;
         node.ops.get_stat(node.location())
+    }
+
+    pub fn read_all(&self) -> VfsResult<Vec<u8>> {
+        const INCREMENT: usize = 512;
+        let len: usize = self
+            .node()
+            .unwrap()
+            .ops
+            .get_stat(&self.node().unwrap().location())?
+            .size
+            .try_into()
+            .map_err(|_| VfsError::Overflow)?;
+        let len = len
+            .checked_add(INCREMENT)
+            .ok_or_else(|| VfsError::Overflow)?;
+        let mut buf = vec![0u8; len];
+        let mut off = 0;
+        loop {
+            if off >= buf.len() {
+                let new_size = buf
+                    .len()
+                    .checked_add(INCREMENT)
+                    .ok_or_else(|| VfsError::Overflow)?;
+                buf.resize(new_size, 0);
+            }
+            let len = self.node().unwrap().ops.read_content(
+                &self.node().unwrap().location(),
+                off,
+                &mut buf[off..],
+            )?;
+            if len == 0 {
+                break;
+            }
+            off += len;
+        }
+        buf.truncate(off);
+        Ok(buf)
     }
 
     pub fn get_type(&self) -> FileType {

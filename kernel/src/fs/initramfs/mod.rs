@@ -9,7 +9,7 @@ use super::path::Path;
 use super::perm::{AccessProfile, Gid, Uid};
 use super::vfs::resolver::ResolutionSettings;
 use super::vfs::{self, VfsError, VfsResult};
-use super::{Mode, Stat};
+use super::{FileType, Mode, Stat};
 
 mod cpio;
 
@@ -23,7 +23,6 @@ pub fn load(initramfs: &limine::file::File) -> VfsResult<()> {
     for entry in cpio_parser {
         let header = entry.get_header();
         let path = Path::new(entry.get_filename())?;
-        log::debug!("{:?}", path);
         let Some(name) = path.file_name() else {
             continue;
         };
@@ -53,6 +52,17 @@ pub fn load(initramfs: &limine::file::File) -> VfsResult<()> {
             Err(VfsError::FileAlreadyExists) => continue,
             Err(e) => return Err(e),
         };
+        match file.get_type() {
+            FileType::Regular | FileType::Link => {
+                let content = entry.get_content();
+                file.node().unwrap().ops.write_content(
+                    file.node().unwrap().location(),
+                    0,
+                    content,
+                )?;
+            }
+            _ => {}
+        }
     }
     Ok(())
 }

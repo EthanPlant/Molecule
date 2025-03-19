@@ -3,8 +3,9 @@
 use alloc::boxed::Box;
 use alloc::string::ToString;
 use alloc::sync::Arc;
-use alloc::vec;
 use alloc::vec::Vec;
+use alloc::{format, vec};
+use core::cmp::{max, min};
 
 use super::perm::{Gid, Uid, ROOT_GID, ROOT_ID};
 use super::vfs::node::NodeOps;
@@ -214,10 +215,50 @@ impl NodeOps for Node {
         Ok((inode, Box::new(node)))
     }
 
-    fn entry_by_name<'a>(
+    fn write_content(&self, _loc: &FileLocation, off: usize, buf: &[u8]) -> VfsResult<usize> {
+        let mut inner = self.0.lock();
+        log::debug!("Writing {} bytes to a file", buf.len());
+        match &mut inner.content {
+            NodeContent::Regular(content) => {
+                if off > content.len() {
+                    return Err(VfsError::OffsetTooLarge);
+                }
+                let Some(end) = off.checked_add(buf.len()) else {
+                    return Err(VfsError::Overflow);
+                };
+                let new_len = max(content.len(), end);
+                content.resize(new_len, 0);
+                content[off..end].copy_from_slice(buf);
+            }
+            NodeContent::Link(content) => {
+                content.resize(buf.len(), 0);
+                content.copy_from_slice(buf);
+            }
+            NodeContent::Directory(_) => return Err(VfsError::IsADirectory),
+            _ => return Err(VfsError::InvalidFileType),
+        }
+        Ok(buf.len())
+    }
+
+    fn read_content(&self, _loc: &FileLocation, off: usize, buf: &mut [u8]) -> VfsResult<usize> {
+        let inner = self.0.lock();
+        let content = match &inner.content {
+            NodeContent::Regular(content) | NodeContent::Link(content) => content,
+            NodeContent::Directory(_) => return Err(VfsError::IsADirectory),
+            _ => return Err(VfsError::InvalidFileType),
+        };
+        if off > content.len() {
+            return Err(VfsError::OffsetTooLarge);
+        }
+        let len = min(buf.len(), content.len() - off);
+        buf[..len].copy_from_slice(&content[off..(off + len)]);
+        Ok(len)
+    }
+
+    fn entry_by_name(
         &self,
         loc: &FileLocation,
-        name: &'a [u8],
+        name: &[u8],
     ) -> VfsResult<Option<(DirEntry, Box<dyn NodeOps>)>> {
         let inner = self.0.lock();
         let NodeContent::Directory(entries) = &inner.content else {

@@ -16,11 +16,14 @@
 
 //! The Molecule kernel.
 use core::arch::asm;
+use core::str;
 
 use arch::interrupts::apic::set_bsp_ready;
 use arch::interrupts::enable_interrupts;
 use drivers::framebuffer::console::println;
+use fs::path::Path;
 use fs::perm::AccessProfile;
+use fs::vfs::resolver::ResolutionSettings;
 use fs::{vfs, Stat};
 use limine::request::{
     FramebufferRequest, HhdmRequest, MemoryMapRequest, ModuleRequest, RequestsEndMarker,
@@ -108,7 +111,10 @@ pub fn kmain() -> ! {
     }
     if let Some(initramfs) = initramfs {
         log::info!("Initialzing initramfs");
-        fs::initramfs::load(initramfs);
+        let res = fs::initramfs::load(initramfs);
+        if res.is_err() {
+            log::warn!("Error loading initramfs: {:?}", res);
+        }
     }
 
     println!("Welcome to Molecule!");
@@ -122,6 +128,21 @@ pub fn kmain() -> ! {
         "{} MiB free",
         get_frame_allocator().get_total_memory() / 1024 / 1024
     );
+
+    let paths = [
+        Path::new("hi.txt").unwrap(),
+        Path::new("b.txt").unwrap(),
+        Path::new("subdir/sub.txt").unwrap(),
+    ];
+    for path in paths {
+        println!("Content of {}", path);
+        let file = vfs::get_file_from_path(path, &ResolutionSettings::kernel_nofollow());
+        if file.is_ok() {
+            let content = file.unwrap().read_all().unwrap();
+            let txt = str::from_utf8(&content).unwrap();
+            println!("{txt}");
+        }
+    }
 
     #[cfg(target_arch = "x86_64")]
     set_bsp_ready();

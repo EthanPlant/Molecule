@@ -2,6 +2,8 @@
 
 use core::mem;
 
+use limine::file;
+
 const CPIO_MAGIC: u16 = 0o070707;
 
 /// CPIO Archive parser.
@@ -82,6 +84,16 @@ impl<'a> CpioEntry<'a> {
             end -= 1;
         }
         &self.data[start..end]
+    }
+
+    pub fn get_content(&self) -> &'a [u8] {
+        let header = self.get_header();
+        let mut start = size_of::<CpioHeader>() + header.namesize as usize;
+        if start % 2 != 0 {
+            start += 1;
+        }
+        let filesize = header.filesize.rotate_left(16);
+        &self.data[start..(start + filesize as usize)]
     }
 }
 
