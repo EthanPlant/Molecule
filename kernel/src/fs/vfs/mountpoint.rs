@@ -1,55 +1,61 @@
-use alloc::string::String;
 use alloc::sync::Arc;
 
 use hashbrown::HashMap;
-use spin::Lazy;
+use spin::Once;
 
-use super::node::{self, Node};
-use super::Entry;
-use crate::fs::tmpfs::{TmpFs, TmpFsType};
-use crate::fs::{FileLocation, FileSystem, FileSystemType};
+use super::entry::VfsEntry;
+use super::node::{self, VfsNode};
+use crate::fs::tmpfs::TmpFs;
+use crate::fs::{FileLocation, FileSystem};
 use crate::sync::Mutex;
 
-static MOUNT_POINTS: Lazy<Mutex<HashMap<u32, Arc<MountPoint>>>> =
-    Lazy::new(|| Mutex::new(HashMap::new()));
+static MOUNT_POINTS: Once<Mutex<HashMap<u32, Arc<MountPoint>>>> = Once::new();
 
-/// A mount point, enabling attaching a filesystem to a directory in the VFS
+/// A mountpoint, enabling attaching a filesystem to a directory in the VFS
 pub struct MountPoint {
-    id: u32,
-    flags: u32,
+    _id: u32,
+    _flags: u32,
     fs: Arc<dyn FileSystem>,
-    root: Arc<super::Entry>,
+    _root: Arc<VfsEntry>,
 }
 
 impl MountPoint {
+    /// Get the filesystem for this mountpoint
     pub fn filesystem(&self) -> Arc<dyn FileSystem> {
         self.fs.clone()
     }
 }
 
-/// Creates the root mountpoint, and returns the newly created root entry of the VFS
-pub fn create_root() -> Arc<super::Entry> {
-    let tmp = TmpFsType;
-    let tmp = tmp.load_filesystem(false);
-    let root = tmp.get_root();
-    let node = node::insert(Node::new(
-        FileLocation {
-            mountpoint_id: 0,
-            inode: root,
-        },
-        tmp.node_from_inode(root).unwrap(),
-    ));
-    let root_entry = Arc::new(Entry::new(node));
-    let mountpoint = Arc::new(MountPoint {
-        id: 0,
-        flags: 0,
-        fs: tmp,
-        root: root_entry.clone(),
-    });
-    MOUNT_POINTS.lock().insert(0, mountpoint);
-    root_entry
+/// Get a mountpoint from an id
+pub fn from_id(id: u32) -> Option<Arc<MountPoint>> {
+    MOUNT_POINTS
+        .get()
+        .expect("Filesystem is initialized")
+        .lock()
+        .get(&id)
+        .cloned()
 }
 
-pub fn from_id(id: u32) -> Option<Arc<MountPoint>> {
-    MOUNT_POINTS.lock().get(&id).cloned()
+/// Create the root mountpoint
+pub fn create_root() -> Arc<VfsEntry> {
+    let tmp = TmpFs::init(false);
+    let root = tmp.get_root();
+    let node = node::insert(VfsNode::new(
+        FileLocation {
+            mountpoint_id: 0,
+            file_id: root,
+        },
+        tmp.node_from_id(root).unwrap(),
+    ));
+    let root_entry = Arc::new(VfsEntry::new(node, "/", None));
+    let mount_point = Arc::new(MountPoint {
+        _id: 0,
+        _flags: 0,
+        fs: tmp,
+        _root: root_entry.clone(),
+    });
+    let mut mountpoints = HashMap::new();
+    mountpoints.insert(0, mount_point.clone());
+    MOUNT_POINTS.call_once(|| Mutex::new(mountpoints));
+    root_entry
 }

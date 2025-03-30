@@ -22,9 +22,12 @@ use arch::interrupts::apic::set_bsp_ready;
 use arch::interrupts::enable_interrupts;
 use drivers::framebuffer::console::println;
 use fs::path::Path;
-use fs::perm::AccessProfile;
+use fs::vfs;
 use fs::vfs::resolver::ResolutionSettings;
-use fs::{vfs, Stat};
+// use fs::path::Path;
+// use fs::perm::AccessProfile;
+// use fs::vfs::resolver::ResolutionSettings;
+// use fs::{vfs, Stat};
 use limine::request::{
     FramebufferRequest, HhdmRequest, MemoryMapRequest, ModuleRequest, RequestsEndMarker,
     RequestsStartMarker, RsdpRequest, SmpRequest,
@@ -136,7 +139,7 @@ pub fn kmain() -> ! {
     ];
     for path in paths {
         println!("Content of {}", path);
-        let file = vfs::get_file_from_path(path, &ResolutionSettings::kernel_nofollow());
+        let file = vfs::get_file_from_path(path, &ResolutionSettings::kernel_no_follow());
         if file.is_ok() {
             let content = file.unwrap().read_all().unwrap();
             let txt = str::from_utf8(&content).unwrap();

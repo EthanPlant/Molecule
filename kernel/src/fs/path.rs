@@ -191,7 +191,7 @@ impl<'a> Iterator for Components<'a> {
     }
 }
 
-impl<'a> DoubleEndedIterator for Components<'a> {
+impl DoubleEndedIterator for Components<'_> {
     fn next_back(&mut self) -> Option<Self::Item> {
         self.next_inner(true)
     }

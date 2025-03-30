@@ -2,8 +2,6 @@
 
 use core::mem;
 
-use limine::file;
-
 const CPIO_MAGIC: u16 = 0o070707;
 
 /// CPIO Archive parser.
@@ -32,7 +30,7 @@ impl<'a> Iterator for CpioParser<'a> {
         }
         // Safety: Slice is large enough to contain a CPIO header
         let header = unsafe { &*self.data[self.off..].as_ptr().cast::<CpioHeader>() };
-        if header.magic != 0o070707 {
+        if header.magic != CPIO_MAGIC {
             log::warn!("Invalid header");
             return None;
         }
@@ -58,7 +56,7 @@ impl<'a> Iterator for CpioParser<'a> {
             data: &self.data[self.off..(self.off + size)],
         };
         self.off += size;
-        if entry.get_filename() == b"TRAILER!!!" {
+        if entry.get_filename() == "TRAILER!!!" {
             return None;
         }
         Some(entry)
@@ -76,14 +74,14 @@ impl<'a> CpioEntry<'a> {
         unsafe { &*self.data.as_ptr().cast::<CpioHeader>() }
     }
 
-    pub fn get_filename(&self) -> &'a [u8] {
+    pub fn get_filename(&self) -> &'a str {
         let header = self.get_header();
         let start = mem::size_of::<CpioHeader>();
         let mut end = start + header.namesize as usize;
         if end - start > 0 && self.data[end - 1] == b'\0' {
             end -= 1;
         }
-        &self.data[start..end]
+        core::str::from_utf8(&self.data[start..end]).expect("initramfs: Invalid filename")
     }
 
     pub fn get_content(&self) -> &'a [u8] {
