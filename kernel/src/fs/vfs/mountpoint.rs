@@ -5,7 +5,7 @@ use spin::Once;
 
 use super::entry::VfsEntry;
 use super::node::{self, VfsNode};
-use crate::fs::tmpfs::TmpFs;
+use crate::fs::memfs::MemFs;
 use crate::fs::{FileLocation, FileSystem};
 use crate::sync::Mutex;
 
@@ -38,7 +38,7 @@ pub fn from_id(id: u32) -> Option<Arc<MountPoint>> {
 
 /// Create the root mountpoint
 pub fn create_root() -> Arc<VfsEntry> {
-    let tmp = TmpFs::init(false);
+    let tmp = MemFs::init(false);
     let root = tmp.get_root();
     let node = node::insert(VfsNode::new(
         FileLocation {

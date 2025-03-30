@@ -10,7 +10,7 @@ pub(super) mod attributes;
 pub mod initramfs;
 pub mod path;
 pub(super) mod perm;
-mod tmpfs;
+mod memfs;
 pub mod vfs;
 
 /// The file id of the root of a filesystem

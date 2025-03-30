@@ -1,4 +1,4 @@
-//! The temporary filesystem (tmpfs) is a temporary in-memory filesystem. In tmpfs files do not
+//! The memory filesystem (memfs) is a temporary in-memory filesystem. In tmpfs files do not
 //! exist on any persistent storage and instead live fully in memory.
 
 use alloc::boxed::Box;
@@ -13,12 +13,12 @@ mod node;
 
 /// A temporary filesystem. This filesystem is a collection of in-memory [Node]s containing each
 /// file's metadata and content.
-pub struct TmpFs {
+pub struct MemFs {
     readonly: bool,
     nodes: Mutex<NodeStorage>,
 }
 
-impl TmpFs {
+impl MemFs {
     /// Create a new tmpfs.
     pub fn new(readonly: bool) -> Self {
         let root = Node::new();
@@ -29,10 +29,10 @@ impl TmpFs {
     }
 }
 
-impl FileSystem for TmpFs {
+impl FileSystem for MemFs {
     fn init(readonly: bool) -> Arc<dyn FileSystem> {
-        log::debug!("Initializing tmpfs with readonly={}", readonly);
-        Arc::new(TmpFs::new(readonly))
+        log::debug!("Initializing memfs with readonly={}", readonly);
+        Arc::new(MemFs::new(readonly))
     }
 
     fn get_root(&self) -> FileId {

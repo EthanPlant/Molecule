@@ -5,7 +5,7 @@ use alloc::vec::Vec;
 use core::any::Any;
 use core::cmp::{max, min};
 
-use super::TmpFs;
+use super::MemFs;
 use crate::fs::attributes::{FileType, Mode, Stat};
 use crate::fs::perm::{
     Gid, Uid, ROOT_GID, ROOT_UID, S_IRGRP, S_IROTH, S_IRUSR, S_ISGID, S_IWGRP, S_IWOTH, S_IWUSR,
@@ -16,7 +16,7 @@ use crate::fs::vfs::{VfsError, VfsResult};
 use crate::fs::{DirEntry, FileId, FileLocation, ROOT_ID};
 use crate::sync::Mutex;
 
-/// Cache of tmpfs nodes
+/// Cache of memfs nodes
 pub struct NodeStorage(Vec<Option<Node>>);
 
 impl NodeStorage {
@@ -165,7 +165,7 @@ impl VfsNodeOps for Node {
     ) -> VfsResult<(FileId, Box<dyn VfsNodeOps>)> {
         let fs = parent.get_filesystem().expect("tmpfs is mounted");
         let fs = fs as Arc<dyn Any>;
-        let fs = fs.downcast_ref::<TmpFs>().expect("parent is in tmpfs");
+        let fs = fs.downcast_ref::<MemFs>().expect("parent is in tmpfs");
         if fs.readonly {
             return Err(VfsError::ReadOnly);
         }
