@@ -71,7 +71,7 @@ pub fn get_file_from_path_opt(
 /// Create a file, add it to the VFS, then return it.
 pub fn create_file(
     parent: &Arc<VfsEntry>,
-    name: &'static str,
+    name: &str,
     ap: &AccessProfile,
     mut stat: Stat,
 ) -> VfsResult<Arc<VfsEntry>> {

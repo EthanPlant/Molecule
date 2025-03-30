@@ -47,7 +47,7 @@ pub trait VfsNodeOps: Send + Sync {
     fn add_file(
         &self,
         parent: &FileLocation,
-        name: &'static str,
+        name: &str,
         stat: Stat,
     ) -> VfsResult<(FileId, Box<dyn VfsNodeOps>)>;
 

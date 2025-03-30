@@ -1,4 +1,5 @@
 use alloc::boxed::Box;
+use alloc::string::ToString;
 use alloc::sync::Arc;
 use alloc::vec;
 use alloc::vec::Vec;
@@ -81,7 +82,7 @@ impl Node {
             content: NodeContent::Directory(vec![DirEntry {
                 id: ROOT_ID,
                 _entry_type: FileType::Directory,
-                name: ".",
+                name: ".".to_string(),
             }]),
         })))
     }
@@ -105,14 +106,14 @@ impl Node {
                     entries.push(DirEntry {
                         id,
                         _entry_type: FileType::Directory,
-                        name: ".",
+                        name: ".".to_string(),
                     });
                 };
                 if let Some(parent) = parent {
                     entries.push(DirEntry {
                         id: parent,
                         _entry_type: FileType::Directory,
-                        name: "..",
+                        name: "..".to_string(),
                     });
                 };
                 NodeContent::Directory(entries)
@@ -160,7 +161,7 @@ impl VfsNodeOps for Node {
     fn add_file(
         &self,
         parent: &FileLocation,
-        name: &'static str,
+        name: &str,
         stat: Stat,
     ) -> VfsResult<(FileId, Box<dyn VfsNodeOps>)> {
         let fs = parent.get_filesystem().expect("tmpfs is mounted");
@@ -182,9 +183,9 @@ impl VfsNodeOps for Node {
         let ent = DirEntry {
             id,
             _entry_type: entry_type,
-            name,
+            name: name.to_string(),
         };
-        let res = parent_entries.binary_search_by(|ent| ent.name.cmp(name));
+        let res = parent_entries.binary_search_by(|ent| ent.name.cmp(&name.to_string()));
         let Err(ent_index) = res else {
             return Err(VfsError::FileAlreadyExists);
         };
@@ -245,7 +246,7 @@ impl VfsNodeOps for Node {
         let NodeContent::Directory(entries) = &inner.content else {
             return Err(VfsError::NotADirectory);
         };
-        let Some(off) = entries.binary_search_by(|ent| ent.name.cmp(name)).ok() else {
+        let Some(off) = entries.binary_search_by(|ent| ent.name.cmp(&name.to_string())).ok() else {
             return Ok(None);
         };
         let ent = entries[off].clone();
@@ -262,7 +263,7 @@ enum NodeContent {
     /// A regular file, contains the file's bytes.
     Regular(Vec<u8>),
     /// A directory, contains a list of entries to its children.
-    Directory(Vec<DirEntry<'static>>),
+    Directory(Vec<DirEntry>),
     /// A link, contains the path to redirect to.
     Link(Vec<u8>),
     /// A pipe, holds nothing

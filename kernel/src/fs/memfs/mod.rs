@@ -6,7 +6,7 @@ use alloc::sync::Arc;
 
 use node::{Node, NodeStorage};
 
-use super::{FileId, FileSystem, ROOT_ID};
+use super::{vfs::node::VfsNodeOps, FileId, FileSystem, ROOT_ID};
 use crate::sync::Mutex;
 
 mod node;
@@ -41,8 +41,8 @@ impl FileSystem for MemFs {
 
     fn node_from_id(
         &self,
-        id: super::FileId,
-    ) -> Option<alloc::boxed::Box<dyn super::vfs::node::VfsNodeOps>> {
+        id: FileId,
+    ) -> Option<alloc::boxed::Box<dyn VfsNodeOps>> {
         let lock = self.nodes.lock();
         let node = lock.get_node(id)?;
         Some(Box::new(node.clone()))

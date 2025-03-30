@@ -1,5 +1,6 @@
 //! VFS path resolution
 
+use alloc::string::{String, ToString};
 use alloc::sync::Arc;
 use core::str;
 
@@ -53,18 +54,18 @@ impl ResolutionSettings {
 }
 
 /// The result of a path resolution operation.
-pub enum Resolved<'a> {
+pub enum Resolved {
     /// The file was found in the VFS
     Found(Arc<VfsEntry>),
     /// The file was not found, but the parent directory was found. The file can be created.
     Createable {
         _parent: Arc<VfsEntry>,
-        _name: &'a str,
+        _name: String,
     },
 }
 
 /// Resolve  a path with the given settings.
-pub fn resolve_path<'a>(path: &'a Path, settings: &ResolutionSettings) -> VfsResult<Resolved<'a>> {
+pub fn resolve_path(path: &Path, settings: &ResolutionSettings) -> VfsResult<Resolved> {
     if settings.cwd.is_none() && path.is_empty() {
         return Err(VfsError::FileDoesntExist);
     }
@@ -127,11 +128,11 @@ fn resolve_link(
 }
 
 /// Inner implementation of path resolution operations
-fn resolve_path_inner<'a>(
-    path: &'a Path,
+fn resolve_path_inner(
+    path: &Path,
     settings: &ResolutionSettings,
     symlink_rec: usize,
-) -> VfsResult<Resolved<'a>> {
+) -> VfsResult<Resolved> {
     let mut lookup_dir = match (path.is_absolute(), &settings.cwd) {
         (false, Some(start)) => start.clone(),
         _ => settings.root.clone(),
@@ -199,7 +200,7 @@ fn resolve_path_inner<'a>(
         return if settings.create {
             Ok(Resolved::Createable {
                 _parent: lookup_dir,
-                _name: str::from_utf8(name).unwrap(),
+                _name: String::from_utf8_lossy(name).to_string(),
             })
         } else {
             return Err(VfsError::FileDoesntExist);

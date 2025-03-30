@@ -1,4 +1,5 @@
 use alloc::boxed::Box;
+use alloc::string::String;
 use alloc::sync::Arc;
 use core::any::Any;
 
@@ -61,10 +62,10 @@ impl FileLocation {
 
 /// An entry in a directory
 #[derive(Clone)]
-pub struct DirEntry<'a> {
+pub struct DirEntry {
     id: FileId,
     _entry_type: FileType,
-    name: &'a str,
+    name: String,
 }
 
 /// Initializze the filesystem
