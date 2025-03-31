@@ -1,6 +1,7 @@
 use alloc::boxed::Box;
 use alloc::sync::Arc;
 use core::borrow::Borrow;
+use core::fmt::Debug;
 use core::hash::{Hash, Hasher};
 
 use hashbrown::HashSet;
@@ -15,6 +16,7 @@ use crate::sync::Mutex;
 static USED_NODES: Lazy<Mutex<HashSet<NodeEntry>>> = Lazy::new(|| Mutex::new(HashSet::new()));
 
 /// A VFS node. VFS nodes act as an entry point into a proper filesystem.
+#[derive(Debug)]
 pub struct VfsNode {
     location: FileLocation,
     ops: Box<dyn VfsNodeOps>,
@@ -39,7 +41,7 @@ impl VfsNode {
 
 /// Filesystem node operations. A filesystem is required to implement these operations to provide a
 /// hook for the VFS.
-pub trait VfsNodeOps: Send + Sync {
+pub trait VfsNodeOps: Send + Sync + Debug {
     /// Get the status of a node
     fn get_stat(&self, loc: &FileLocation) -> VfsResult<Stat>;
 

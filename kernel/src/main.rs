@@ -136,6 +136,7 @@ pub fn kmain() -> ! {
         Path::new("hi.txt").unwrap(),
         Path::new("b.txt").unwrap(),
         Path::new("subdir/sub.txt").unwrap(),
+        Path::new("/dev/null").unwrap(),
     ];
     for path in paths {
         println!("Content of {}", path);

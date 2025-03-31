@@ -104,6 +104,7 @@ impl AsRef<Path> for Path {
 }
 
 /// A component of a path.
+#[derive(Debug)]
 pub enum Component<'a> {
     /// The root directory (`/`)
     RootDir,

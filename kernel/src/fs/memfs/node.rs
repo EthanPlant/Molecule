@@ -8,13 +8,14 @@ use core::cmp::{max, min};
 
 use super::MemFs;
 use crate::fs::attributes::{FileType, Mode, Stat};
+use crate::fs::devfs::{DeviceId, DeviceType};
 use crate::fs::perm::{
     Gid, Uid, ROOT_GID, ROOT_UID, S_IRGRP, S_IROTH, S_IRUSR, S_ISGID, S_IWGRP, S_IWOTH, S_IWUSR,
     S_IXGRP, S_IXOTH, S_IXUSR,
 };
 use crate::fs::vfs::node::VfsNodeOps;
 use crate::fs::vfs::{VfsError, VfsResult};
-use crate::fs::{DirEntry, FileId, FileLocation, ROOT_ID};
+use crate::fs::{devfs, DirEntry, FileId, FileLocation, ROOT_ID};
 use crate::sync::Mutex;
 
 /// Cache of memfs nodes
@@ -55,7 +56,7 @@ impl NodeStorage {
 }
 
 /// A node in the tmpfs, representing a file.
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Node(Arc<Mutex<NodeInner>>);
 
 impl Node {
@@ -202,6 +203,20 @@ impl VfsNodeOps for Node {
         let content = match &inner.content {
             NodeContent::Regular(content) | NodeContent::Link(content) => content,
             NodeContent::Directory(_) => return Err(VfsError::IsADirectory),
+            NodeContent::BlockDevice { major, minor } => &devfs::get_device(DeviceId {
+                dev_type: DeviceType::Block,
+                major: *major,
+                minor: *minor,
+            })
+            .expect("Attempted to read from invalid device")
+            .read(),
+            NodeContent::CharDevice { major, minor } => &devfs::get_device(DeviceId {
+                dev_type: DeviceType::Char,
+                major: *major,
+                minor: *minor,
+            })
+            .expect("Attempted to read from invalid device")
+            .read(),
             _ => return Err(VfsError::InvalidFileType),
         };
         if off > content.len() {
@@ -231,6 +246,24 @@ impl VfsNodeOps for Node {
                 content.copy_from_slice(buf);
             }
             NodeContent::Directory(_) => return Err(VfsError::IsADirectory),
+            NodeContent::BlockDevice { major, minor } => {
+                devfs::get_device(DeviceId {
+                    dev_type: DeviceType::Block,
+                    major: *major,
+                    minor: *minor,
+                })
+                .expect("Attempted to write to invalid device")
+                .write(off, buf);
+            }
+            NodeContent::CharDevice { major, minor } => {
+                devfs::get_device(DeviceId {
+                    dev_type: DeviceType::Char,
+                    major: *major,
+                    minor: *minor,
+                })
+                .expect("Attempted to write to invalid device")
+                .write(off, buf);
+            }
             _ => return Err(VfsError::InvalidFileType),
         }
 
@@ -246,7 +279,10 @@ impl VfsNodeOps for Node {
         let NodeContent::Directory(entries) = &inner.content else {
             return Err(VfsError::NotADirectory);
         };
-        let Some(off) = entries.binary_search_by(|ent| ent.name.cmp(&name.to_string())).ok() else {
+        let Some(off) = entries
+            .binary_search_by(|ent| ent.name.cmp(&name.to_string()))
+            .ok()
+        else {
             return Ok(None);
         };
         let ent = entries[off].clone();
@@ -259,6 +295,7 @@ impl VfsNodeOps for Node {
 }
 
 /// The content of a [Node].
+#[derive(Debug)]
 enum NodeContent {
     /// A regular file, contains the file's bytes.
     Regular(Vec<u8>),
@@ -277,6 +314,7 @@ enum NodeContent {
 }
 
 /// The inner content of a tmpfs node
+#[derive(Debug)]
 struct NodeInner {
     mode: Mode,
     link: u16,

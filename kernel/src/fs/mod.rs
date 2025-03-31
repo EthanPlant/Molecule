@@ -8,10 +8,11 @@ use vfs::mountpoint::{self, MountPoint};
 use vfs::node::VfsNodeOps;
 
 pub(super) mod attributes;
+pub mod devfs;
 pub mod initramfs;
+mod memfs;
 pub mod path;
 pub(super) mod perm;
-mod memfs;
 pub mod vfs;
 
 /// The file id of the root of a filesystem
@@ -30,7 +31,7 @@ pub trait FileSystem: Any + Send + Sync {
 }
 
 /// A filesystem node id. This is a unique number that represents a node in a filesystem.
-#[derive(Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
 pub struct FileId(u64);
 
 impl FileId {
@@ -42,7 +43,7 @@ impl FileId {
 
 /// The location of a file, containing the file's mountpoint id and file id. With these two values
 /// it is possible to uniquely identify any given file.
-#[derive(Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
 pub struct FileLocation {
     mountpoint_id: u32,
     file_id: FileId,
@@ -61,7 +62,7 @@ impl FileLocation {
 }
 
 /// An entry in a directory
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct DirEntry {
     id: FileId,
     _entry_type: FileType,
@@ -73,5 +74,6 @@ pub fn init() {
     log::debug!("fs: Initializing filesystem");
     let root = mountpoint::create_root();
     vfs::init_root(root);
+    devfs::init();
     log::debug!("fs: Filesystem initialized");
 }

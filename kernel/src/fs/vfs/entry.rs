@@ -14,6 +14,7 @@ use crate::fs::vfs::VfsError;
 use crate::sync::{Mutex, MutexGuard};
 
 /// A VFS entry, representing a directory entry cached in memory
+#[derive(Debug)]
 pub struct VfsEntry {
     name: String,
     parent: Option<Arc<VfsEntry>>,
@@ -91,6 +92,7 @@ impl VfsEntry {
 ///
 /// An EntryChild is a smart pointer around a VFS entry, with the [Borrow], [PartialEq], and [Hash]
 /// traits forwarded to the entry's name.
+#[derive(Debug)]
 pub struct EntryChild(Arc<VfsEntry>);
 
 impl EntryChild {
@@ -126,6 +128,7 @@ impl Hash for EntryChild {
 }
 
 /// A collection of children for a VFS entry
+#[derive(Debug)]
 struct VfsEntryChildren(Mutex<HashSet<EntryChild>>);
 
 impl VfsEntryChildren {

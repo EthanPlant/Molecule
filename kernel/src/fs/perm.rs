@@ -34,7 +34,7 @@ pub const ROOT_UID: Uid = Uid(0);
 pub const ROOT_GID: Gid = Gid(0);
 
 /// A user id, representing a user that owns or is accessing a file.
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct Uid(u16);
 
 impl Uid {
@@ -45,7 +45,7 @@ impl Uid {
 }
 
 /// A group id, representing a group that owns or is accessing a file.
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct Gid(u16);
 
 impl Gid {
@@ -56,7 +56,7 @@ impl Gid {
 }
 
 /// A set of information determining whether an agent can access a resource
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub struct AccessProfile {
     uid: Uid,
     gid: Gid,

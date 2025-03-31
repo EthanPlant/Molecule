@@ -17,6 +17,7 @@ use crate::fs::FileLocation;
 const SYMLOOP_MAX: usize = 8;
 
 /// Setttings for a paath resolution operation
+#[derive(Debug)]
 pub struct ResolutionSettings {
     /// VFS entry of the root to begin resolution from
     pub root: Arc<VfsEntry>,

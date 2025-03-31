@@ -4,7 +4,7 @@ use super::perm::{Gid, Uid};
 use super::vfs::{VfsError, VfsResult};
 
 /// File types.
-#[derive(PartialEq, Eq, Clone, Copy)]
+#[derive(PartialEq, Eq, Clone, Copy, Debug)]
 pub enum FileType {
     /// A regular file for storing data.
     Regular,
@@ -38,7 +38,7 @@ impl From<FileType> for u32 {
 
 /// A file's mode information contains two types of data, the file's file type and the file's access
 /// permission.
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub struct Mode(u32);
 
 impl Mode {
