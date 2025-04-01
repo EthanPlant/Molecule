@@ -3,3 +3,6 @@
 *.iso
 *.hdd
 initramfs
+userland/*.o
+userland/test
+sysroot/test

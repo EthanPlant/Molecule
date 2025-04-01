@@ -178,6 +178,7 @@ kernel:
 .PHONY: sysroot
 sysroot:
 	rm -f initramfs
+	$(shell ./userland/build.sh)
 	cd sysroot; find . | cpio -o > ../initramfs
 
 $(IMAGE_NAME).iso: limine/limine kernel sysroot

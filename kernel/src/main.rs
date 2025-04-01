@@ -36,6 +36,7 @@ use limine::BaseRevision;
 use linked_list_allocator::LockedHeap;
 use memory::frame_allocator::get_frame_allocator;
 use process::scheduler;
+use xmas_elf::ElfFile;
 extern crate alloc;
 
 mod acpi;
@@ -148,27 +149,12 @@ pub fn kmain() -> ! {
         }
     }
 
-    println!("Attempting to write to /dev/fb0");
-    println!("If the top of the screen is white, it worked!");
-    let path = Path::new("/dev/fb0").unwrap();
+    let path = Path::new_unbounded("test");
     let file = vfs::get_file_from_path(path, &ResolutionSettings::kernel_no_follow());
     if file.is_ok() {
-        let file = file.unwrap();
-        file.node()
-            .ops()
-            .write_content(&file.node().location(), 0, &[0xFF; 1024 * 1024])
-            .unwrap();
-    }
-
-    println!("Attempting to write to /dev/tty");
-    let path = Path::new_unbounded("/dev/tty");
-    let file = vfs::get_file_from_path(path, &ResolutionSettings::kernel_no_follow());
-    if file.is_ok() {
-        let file = file.unwrap();
-        file.node()
-            .ops()
-            .write_content(&file.node().location(), 0, b"Hello from /dev/tty!\n")
-            .unwrap();
+        let content = file.unwrap().read_all().unwrap();
+        let elf = ElfFile::new(&content).unwrap();
+        println!("ELF file: {:#?}", elf.header);
     }
 
     #[cfg(target_arch = "x86_64")]

@@ -19,6 +19,7 @@ spin = { version = "0.9.8", default-features = false, features = [
     "once",
     "lazy",
 ] }
+xmas-elf = "0.10.0"
 
 [profile.dev]
 panic = "abort"
