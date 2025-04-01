@@ -9,7 +9,7 @@ use crate::arch::interrupts::apic;
 use crate::arch::interrupts::apic::{get_cpu_count, get_local_apic};
 use crate::arch::x86_64::interrupts::idt;
 use crate::arch::x86_64::memory::heap;
-use crate::arch::x86_64::{gdt, simd, time};
+use crate::arch::x86_64::{gdt, simd, syscall, time};
 use crate::drivers::framebuffer;
 use crate::memory::addr::{VirtAddr, HHDM_OFFSET};
 use crate::{
@@ -81,6 +81,12 @@ extern "C" fn x86_64_molecule_main() -> ! {
 
     apic::init();
     time::init();
+
+    syscall::init();
+
+    unsafe {
+        core::arch::asm!("mov rax, 0x0; int 0x80");
+    }
 
     crate::kmain()
 }

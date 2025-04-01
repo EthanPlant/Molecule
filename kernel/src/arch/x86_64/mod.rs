@@ -11,6 +11,7 @@ pub mod io;
 mod memory;
 pub mod process;
 mod simd;
+mod syscall;
 mod time;
 
 pub fn get_cpu_id() -> u32 {
