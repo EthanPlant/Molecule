@@ -1,10 +1,12 @@
 //! Abstractions around a linear framebuffer.
 
+use alloc::vec::Vec;
 use core::sync::atomic::{AtomicPtr, Ordering};
 
 use color::Color;
 use spin::Once;
 
+use crate::fs::devfs::{Device, DeviceId, DeviceType};
 use crate::psf::PsfFont;
 use crate::sync::{Mutex, MutexGuard};
 
@@ -74,6 +76,52 @@ impl FramebufferInfo {
     /// Get the offset into the framebuffer's memory from a given position
     fn get_offset(&self, x: usize, y: usize) -> usize {
         (y * self.pitch) / core::mem::size_of::<u32>() + x
+    }
+}
+
+pub struct DevFb;
+
+impl Device for DevFb {
+    fn get_device_id(&self) -> DeviceId {
+        DeviceId {
+            dev_type: DeviceType::Char,
+            major: 29,
+            minor: 0,
+        }
+    }
+
+    fn get_name(&self) -> &str {
+        "fb0"
+    }
+
+    fn read(&self) -> Vec<u8> {
+        let fb = framebuffer();
+        let mut buf = Vec::with_capacity(fb.width * fb.height * 4);
+        for i in 0..fb.height {
+            for j in 0..fb.width {
+                let offset = fb.get_offset(i, j);
+                // Safety: `offset` is guaranteed to be a valid location in the framebuffer's bounds
+                let pixel = unsafe { *fb.addr.load(Ordering::Relaxed).add(offset) };
+                buf.extend_from_slice(&pixel.to_ne_bytes());
+            }
+        }
+        buf
+    }
+
+    fn write(&self, off: usize, buf: &[u8]) -> usize {
+        let fb = framebuffer();
+        let mut written = 0;
+        for i in (off..buf.len()).step_by(4) {
+            if i + 4 > buf.len() {
+                break;
+            }
+            let pixel = u32::from_ne_bytes([buf[i], buf[i + 1], buf[i + 2], buf[i + 3]]);
+            let x = (i / 4) % fb.width;
+            let y = (i / 4) / fb.width;
+            fb.draw_pixel(x, y, Color::from(pixel));
+            written += 4;
+        }
+        written
     }
 }
 

@@ -14,6 +14,8 @@ use super::vfs::node::VfsNodeOps;
 use super::vfs::resolver::{resolve_path, ResolutionSettings, Resolved};
 use super::vfs::{self, VfsError, VfsResult};
 use super::{FileId, FileSystem};
+use crate::drivers::framebuffer::console::ConsoleDev;
+use crate::drivers::framebuffer::DevFb;
 use crate::fs::mountpoint;
 
 static DEVFS_PATH: &str = "/dev";
@@ -110,6 +112,8 @@ pub fn get_device(id: DeviceId) -> Option<Arc<dyn Device>> {
 
 fn register_defaults() -> VfsResult<()> {
     register_device(&(Arc::new(NullDevice {}) as Arc<dyn Device>))?;
+    register_device(&(Arc::new(DevFb {}) as Arc<dyn Device>))?;
+    register_device(&(Arc::new(ConsoleDev {}) as Arc<dyn Device>))?;
     Ok(())
 }
 

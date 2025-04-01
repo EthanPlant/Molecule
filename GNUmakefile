@@ -11,7 +11,7 @@ override USER_VARIABLE = $(if $(filter $(origin $(1)),default undefined),$(eval 
 $(call USER_VARIABLE,KARCH,x86_64)
 
 # Default user QEMU flags. These are appended to the QEMU command calls.
-$(call USER_VARIABLE,QEMUFLAGS,-m 4G -serial stdio -smp 2 -enable-kvm -cpu $(HOST))
+$(call USER_VARIABLE,QEMUFLAGS,-m 4G -serial stdio -smp 1 -enable-kvm -cpu $(HOST))
 
 # Path for the root of the initramfs. Defaults to `sysroot`
 $(call USER_VARIABLE, SYSROOT, ./sysroot)

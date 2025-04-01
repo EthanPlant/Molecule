@@ -7,6 +7,7 @@ use spin::Once;
 
 use super::color::Color;
 use super::{framebuffer, FramebufferInfo};
+use crate::fs::devfs::{Device, DeviceId, DeviceType};
 use crate::logger;
 use crate::psf::PsfFont;
 use crate::sync::Mutex;
@@ -225,6 +226,46 @@ impl fmt::Write for Console {
             self.write_char(char);
         }
         Ok(())
+    }
+}
+
+pub struct ConsoleDev;
+
+impl Device for ConsoleDev {
+    fn get_device_id(&self) -> DeviceId {
+        DeviceId {
+            dev_type: DeviceType::Char,
+            major: 5,
+            minor: 0,
+        }
+    }
+
+    fn get_name(&self) -> &str {
+        "tty"
+    }
+
+    fn read(&self) -> Vec<u8> {
+        let console = CONSOLE.get().unwrap().lock_irq();
+        let mut buf = Vec::new();
+        for i in 0..console.height {
+            for j in 0..console.width {
+                let c = console.buffer[i * console.width + j].c;
+                buf.push(c as u8);
+            }
+        }
+        buf
+    }
+
+    fn write(&self, off: usize, buf: &[u8]) -> usize {
+        let mut console = CONSOLE.get().unwrap().lock_irq();
+        let mut written = 0;
+        for (i, c) in buf.iter().enumerate() {
+            console.buffer[i + off].c = *c as char;
+            console.buffer[i + off].color = console.control_state.color;
+            written += 1;
+        }
+        console.flush();
+        written
     }
 }
 

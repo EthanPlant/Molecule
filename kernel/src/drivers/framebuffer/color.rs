@@ -15,3 +15,9 @@ impl Color {
         self.0
     }
 }
+
+impl From<u32> for Color {
+    fn from(value: u32) -> Self {
+        Self(value)
+    }
+}

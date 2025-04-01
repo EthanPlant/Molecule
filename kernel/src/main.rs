@@ -148,6 +148,29 @@ pub fn kmain() -> ! {
         }
     }
 
+    println!("Attempting to write to /dev/fb0");
+    println!("If the top of the screen is white, it worked!");
+    let path = Path::new("/dev/fb0").unwrap();
+    let file = vfs::get_file_from_path(path, &ResolutionSettings::kernel_no_follow());
+    if file.is_ok() {
+        let file = file.unwrap();
+        file.node()
+            .ops()
+            .write_content(&file.node().location(), 0, &[0xFF; 1024 * 1024])
+            .unwrap();
+    }
+
+    println!("Attempting to write to /dev/tty");
+    let path = Path::new_unbounded("/dev/tty");
+    let file = vfs::get_file_from_path(path, &ResolutionSettings::kernel_no_follow());
+    if file.is_ok() {
+        let file = file.unwrap();
+        file.node()
+            .ops()
+            .write_content(&file.node().location(), 0, b"Hello from /dev/tty!\n")
+            .unwrap();
+    }
+
     #[cfg(target_arch = "x86_64")]
     set_bsp_ready();
 
